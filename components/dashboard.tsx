@@ -100,7 +100,7 @@ export default function DashboardView({
   );
 
   const handleNewApplication = useCallback(() => {
-    router.push('/new-job');
+    router.push('/job-entry');
   }, [router]);
 
   return (

@@ -53,7 +53,6 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
       router.push('/auth/sign-up-success');
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred');
-    } finally {
       setIsLoading(false);
     }
   };

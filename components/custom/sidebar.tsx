@@ -15,7 +15,7 @@ export default function Sidebar({
 
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/new-job', label: 'New Application', icon: PlusCircle },
+    { path: '/job-entry', label: 'New Application', icon: PlusCircle },
   ];
 
   return (
