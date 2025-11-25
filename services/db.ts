@@ -236,6 +236,9 @@ export const db = {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
+    if (!job.title || !job.rawText) {
+      throw new Error('Job title and description are required');
+    }
 
     const { data, error } = await supabase
       .from('job_descriptions')

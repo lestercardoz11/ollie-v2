@@ -21,7 +21,7 @@ export const JobEntryView: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!title || !rawText) {
-      toast.error('Please fill in Title and Job Description.');
+      toast.error('Please fill in title and job description.');
       return;
     }
 
