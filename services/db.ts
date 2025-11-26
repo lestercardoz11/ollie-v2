@@ -7,6 +7,7 @@ import {
   SupportingDocument,
   Achievement,
   SkillCategories,
+  QAResponse,
 } from '../lib/types';
 import { createClient } from '@/utils/supabase/client';
 
@@ -374,7 +375,7 @@ export const db = {
         user_id: string;
         tailored_cv: string;
         cover_letter: string;
-        qa_responses: { question: string; answer: string }[];
+        qa_responses: QAResponse[];
         created_at: string;
       }) => ({
         id: a.id,

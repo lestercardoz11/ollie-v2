@@ -5,7 +5,6 @@ import { Save, Pencil, Ban } from 'lucide-react';
 import { db } from '../services/db';
 import { UserProfile, SupportingDocument } from '../lib/types';
 import { toast } from 'sonner';
-import { PageTransition } from './custom/page-transition';
 import { Button } from './ui/button';
 import { Spinner } from './ui/spinner';
 import { ResumeImport } from './profile/resume-import';
@@ -17,6 +16,7 @@ import { ProfessionalSummary } from './profile/professional-summary';
 import { Experience } from './profile/experience';
 import { Education } from './profile/education';
 import { AdditionalInformation } from './profile/additional-information';
+import { MainContainer } from './custom/main-container';
 
 interface ProfileViewProps {
   userProfile: UserProfile | null;
@@ -96,7 +96,7 @@ export default function ProfileView({
   };
 
   return (
-    <PageTransition className='max-w-5xl mx-auto space-y-5 pb-16'>
+    <MainContainer>
       {/* Header Section */}
       <div className='flex flex-col md:flex-row justify-between items-start md:items-center gap-3'>
         <div>
@@ -208,6 +208,6 @@ export default function ProfileView({
           />
         </div>
       </div>
-    </PageTransition>
+    </MainContainer>
   );
 }

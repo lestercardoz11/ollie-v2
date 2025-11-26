@@ -15,7 +15,7 @@ export default function Sidebar({
 
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/job-entry', label: 'New Application', icon: PlusCircle },
+    { path: '/new-application', label: 'New Application', icon: PlusCircle },
   ];
 
   return (
@@ -73,7 +73,7 @@ export default function Sidebar({
               </div>
             ) : (
               recentJobs.map((job) => {
-                const jobPath = `/application/${job.id}`;
+                const jobPath = `/application-package/${job.id}`;
                 const isActive = pathname === jobPath;
                 return (
                   <Link

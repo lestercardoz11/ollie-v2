@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { ArrowRight, Briefcase } from 'lucide-react';
 import { db } from '../services/db';
 import { toast } from 'sonner';
-import { PageTransition } from './custom/page-transition';
 import { Card, CardContent } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
@@ -11,8 +10,9 @@ import { Spinner } from './ui/spinner';
 import { Textarea } from './ui/textarea';
 import { useRouter } from 'next/navigation';
 import { Field, FieldGroup, FieldLabel, FieldSet } from './ui/field';
+import { MainContainer } from './custom/main-container';
 
-export const JobEntryView: React.FC = () => {
+export default function NewApplicationView() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [company, setCompany] = useState('');
@@ -33,7 +33,7 @@ export const JobEntryView: React.FC = () => {
         rawText,
       });
       toast.success('Job saved successfully! Generating application...');
-      router.push(`/application/${jobId}`);
+      router.push(`/application-package/${jobId}`);
     } catch (e) {
       console.error(e);
       toast.error('Failed to save job. Please try again.');
@@ -43,7 +43,7 @@ export const JobEntryView: React.FC = () => {
   };
 
   return (
-    <PageTransition className='mt-2'>
+    <MainContainer>
       <div className='mb-5 flex items-center gap-3'>
         <div className='inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600'>
           <Briefcase size={16} />
@@ -116,6 +116,6 @@ export const JobEntryView: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-    </PageTransition>
+    </MainContainer>
   );
-};
+}

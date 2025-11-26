@@ -4,11 +4,11 @@ import React, { useMemo, useCallback } from 'react';
 import { Plus, FileText, Clock, Activity } from 'lucide-react';
 import { JobDescription, GeneratedApplication, UserProfile } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-import { PageTransition } from '@/components/custom/page-transition';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import JobRow from './dashboard/job-row';
 import StatCard from './dashboard/stat-card';
+import { MainContainer } from './custom/main-container';
 
 interface DashboardClientProps {
   jobs: JobDescription[];
@@ -94,17 +94,17 @@ export default function DashboardView({
 
   const handleNavigateToJob = useCallback(
     (jobId: string) => {
-      router.push(`/application/${jobId}`);
+      router.push(`/application-package/${jobId}`);
     },
     [router]
   );
 
   const handleNewApplication = useCallback(() => {
-    router.push('/job-entry');
+    router.push('/new-application');
   }, [router]);
 
   return (
-    <PageTransition className='space-y-5 pb-10'>
+    <MainContainer>
       <div className='flex justify-between items-center'>
         <div>
           <h1 className='text-lg font-bold text-slate-900'>Overview</h1>
@@ -168,7 +168,7 @@ export default function DashboardView({
           )}
         </CardContent>
       </Card>
-    </PageTransition>
+    </MainContainer>
   );
 }
 

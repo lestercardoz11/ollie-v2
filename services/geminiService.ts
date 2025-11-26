@@ -9,6 +9,7 @@ import {
 import {
   JobDescription,
   ParsedProfileData,
+  QAResponse,
   UserProfile,
   WritingTone,
 } from '@/lib/types';
@@ -253,7 +254,7 @@ export const generateApplicationPackage = async (
   | {
       tailoredCv: string;
       coverLetter: string;
-      qaResponses: { question: string; answer: string }[];
+      qaResponses: QAResponse[];
     }
   | undefined
 > => {

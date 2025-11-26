@@ -1,4 +1,3 @@
-
 export interface WorkExperience {
   id: string;
   company: string;
@@ -67,11 +66,21 @@ export interface GeneratedApplication {
   profileId: string;
   tailoredCv: string; // Markdown
   coverLetter: string; // Markdown
-  qaResponses: { question: string; answer: string }[];
+  qaResponses: QAResponse[];
   createdAt: string;
 }
 
-export type WritingTone = 'professional' | 'confident' | 'enthusiastic' | 'concise' | 'creative';
+export interface QAResponse {
+  question: string;
+  answer: string;
+}
+
+export type WritingTone =
+  | 'professional'
+  | 'confident'
+  | 'enthusiastic'
+  | 'concise'
+  | 'creative';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
