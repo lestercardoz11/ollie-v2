@@ -1,7 +1,7 @@
 import { Bot, LayoutDashboard } from 'lucide-react';
-import { Button } from '../custom/button';
 import { useRouter } from 'next/navigation';
 import { JwtPayload } from '@supabase/supabase-js';
+import { Button } from '../ui/button';
 
 interface LandingProps {
   user: JwtPayload | null;

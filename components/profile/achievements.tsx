@@ -1,7 +1,9 @@
+'use client';
+
 import { Plus, Trash2, Trophy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
-import { Achievement, UserProfile } from '@/lib/types';
+import { Achievement, UserProfile } from '@/types/db';
 import { Button } from '../ui/button';
 import { Field, FieldGroup, FieldLabel, FieldSet } from '../ui/field';
 import { Textarea } from '../ui/textarea';
@@ -52,7 +54,7 @@ export const Achievements = ({
         </div>
         {isEditing && (
           <Button size='icon-sm' variant='ghost' onClick={addAchievement}>
-            <Plus />
+            <Plus className='h-4 w-4' />
           </Button>
         )}
       </CardHeader>
@@ -64,7 +66,7 @@ export const Achievements = ({
         ) : (
           profile.achievements.map((ach, idx) => (
             <div
-              key={ach.id || idx}
+              key={idx}
               className='relative pl-3 border-l-4 border-slate-200 transition-colors group'>
               {isEditing && (
                 <button
@@ -79,9 +81,12 @@ export const Achievements = ({
                 <FieldSet>
                   <FieldGroup className='grid grid-cols-1 md:grid-cols-10 gap-3'>
                     <Field className='col-span-1 md:col-span-6'>
-                      <FieldLabel htmlFor='title'>Title</FieldLabel>
+                      <FieldLabel htmlFor={`ach-title-${idx}`}>
+                        Title
+                      </FieldLabel>{' '}
+                      {/* Added unique ID */}
                       <Input
-                        id='title'
+                        id={`ach-title-${idx}`}
                         value={ach.title}
                         onChange={(e) =>
                           updateAchievement(idx, 'title', e.target.value)
@@ -90,9 +95,10 @@ export const Achievements = ({
                       />
                     </Field>
                     <Field className='col-span-1 md:col-span-4'>
-                      <FieldLabel htmlFor='date'>Date</FieldLabel>
+                      <FieldLabel htmlFor={`ach-date-${idx}`}>Date</FieldLabel>{' '}
+                      {/* Added unique ID */}
                       <Input
-                        id='date'
+                        id={`ach-date-${idx}`}
                         value={ach.date}
                         onChange={(e) =>
                           updateAchievement(idx, 'date', e.target.value)
@@ -102,9 +108,12 @@ export const Achievements = ({
                     </Field>
                   </FieldGroup>
                   <Field>
-                    <FieldLabel htmlFor='description'>Description</FieldLabel>
+                    <FieldLabel htmlFor={`ach-description-${idx}`}>
+                      Description
+                    </FieldLabel>{' '}
+                    {/* Added unique ID */}
                     <Textarea
-                      id='description'
+                      id={`ach-description-${idx}`}
                       value={ach.description}
                       onChange={(e) =>
                         updateAchievement(idx, 'description', e.target.value)

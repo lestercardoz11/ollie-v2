@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Spinner } from '../ui/spinner';
 import { Bot } from 'lucide-react';
+import { db } from '@/services/db-server';
 
 export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   const [email, setEmail] = useState('');
@@ -42,13 +43,16 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
+      if (data) {
+        db.saveProfile({ email: email });
+      }
       if (error) throw error;
       router.push('/auth/sign-up-success');
     } catch (error: unknown) {

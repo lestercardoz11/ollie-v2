@@ -4,13 +4,7 @@ import { useEffect, useState } from 'react';
 import { RefreshCw, MoreHorizontalIcon } from 'lucide-react';
 import { db } from '../services/db';
 import { generateApplicationPackage } from '../services/geminiService';
-import {
-  GeneratedApplication,
-  JobDescription,
-  UserProfile,
-  WritingTone,
-  QAResponse,
-} from '@/lib/types';
+import { JobDescription, UserProfile } from '@/types/db';
 import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { ButtonGroup } from './ui/button-group';
@@ -27,6 +21,8 @@ import { TailoredCV } from './application/tailored-cv';
 import { CoverLetter } from './application/cover-letter';
 import { GenerationProgress } from './application/generation-progress';
 import { MainContainer } from './custom/main-container';
+import { WritingTone } from '@/types/ai';
+import { ApplicationWithDetails } from '@/types/join';
 
 export default function ApplicationPackageView({
   profile,
@@ -35,10 +31,10 @@ export default function ApplicationPackageView({
 }: {
   profile: UserProfile;
   job: JobDescription;
-  generatedApplication: GeneratedApplication | undefined;
+  generatedApplication: ApplicationWithDetails | undefined;
 }) {
   const [application, setApplication] = useState<
-    GeneratedApplication | undefined
+    ApplicationWithDetails | undefined
   >(generatedApplication);
 
   const [isGenerating, setIsGenerating] = useState(false);
@@ -49,6 +45,7 @@ export default function ApplicationPackageView({
 
   // Auto-generate if no app exists
   useEffect(() => {
+    // job and profile use snake_case IDs now
     if (job && profile && !application && !isGenerating) {
       handleGenerate();
     }
@@ -56,7 +53,8 @@ export default function ApplicationPackageView({
   }, [job, profile, application]);
 
   const handleGenerate = async () => {
-    if (!job || !profile) return;
+    // 🐛 FIX 3: Check IDs using snake_case properties
+    if (!job.id || !profile.id) return;
     setIsGenerating(true);
     setGenerationStep(0);
 
@@ -71,22 +69,42 @@ export default function ApplicationPackageView({
         job,
         selectedTone
       );
+
+      // 🐛 FIX 4: Implement multi-step save using new db methods
+      // Step 1: Save the Tailored CV data (JSONB content)
+      const cvId = await db.saveTailoredCV(profile.user_id, {
+        // Use data from Gemini result
+        summary: result?.tailored_cv_data?.summary || '',
+        experience: result?.tailored_cv_data?.experience || [],
+        education: result?.tailored_cv_data?.education || [],
+        achievements: result?.tailored_cv_data?.achievements || [],
+        skills: result?.tailored_cv_data?.skills || [],
+      });
+      setGenerationStep(1); // Update progress
+
+      // Step 2: Start new chat session for this application
+      const chatTitle = `Chat for ${job.title}`;
+      const newChatId = await db.startNewChat(profile.user_id, chatTitle);
+      setGenerationStep(2); // Update progress
+
+      // Step 3: Save the main Application link and Cover Letter
+      await db.saveApplicationPackage(
+        profile.user_id,
+        job.id,
+        profile.id,
+        cvId, // The ID of the newly saved CV
+        newChatId, // The ID of the new chat
+        { cover_letter_markdown: result?.cover_letter_markdown || '' }
+      );
+      setGenerationStep(3); // Update progress
+
+      // Step 4: Refresh application from DB using the new joined method
+      // db.getApplicationByJobId is replaced by db.getApplicationWithDetails
+      const savedApp = await db.getApplicationWithDetails(job.id, profile.id);
+      setApplication(savedApp);
+
       clearInterval(stepInterval);
       setGenerationStep(4);
-
-      const newApp: Omit<GeneratedApplication, 'id' | 'createdAt'> = {
-        jobId: job.id,
-        profileId: profile.id,
-        tailoredCv: result?.tailoredCv || '',
-        coverLetter: result?.coverLetter || '',
-        qaResponses: result?.qaResponses || new Array<QAResponse>(),
-      };
-
-      await db.saveApplication(newApp);
-
-      // Refresh application from DB to get ID and created_at
-      const savedApp = await db.getApplicationByJobId(job.id);
-      setApplication(savedApp);
 
       toast.success('Application package generated successfully!');
 
@@ -105,6 +123,7 @@ export default function ApplicationPackageView({
       <Tabs defaultValue='cv'>
         <div className='flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 shrink-0'>
           <div className='min-w-0'>
+            {/* 🐛 FIX 5: Access job properties using snake_case */}
             <h1 className='text-base font-bold text-slate-900 leading-tight truncate'>
               {job.title}
             </h1>
@@ -123,12 +142,13 @@ export default function ApplicationPackageView({
                 size={'sm'}
                 onClick={handleGenerate}
                 disabled={isGenerating}>
-                <RefreshCw /> Regenerate
+                <RefreshCw className='mr-1 h-4 w-4' /> Regenerate
               </Button>
+              {/* Dropdown menu for tone selection remains correct */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size='icon-sm' aria-label='More Options'>
-                    <MoreHorizontalIcon />
+                    <MoreHorizontalIcon className='h-4 w-4' />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align='end' className='w-52'>
@@ -165,7 +185,12 @@ export default function ApplicationPackageView({
           <>
             {/* Content Area */}
             <TabsContent value='cv'>
-              <TailoredCV application={application} job={job} />
+              {/* 🐛 FIX 6: Pass the joined application object */}
+              <TailoredCV
+                userProfile={profile}
+                application={application}
+                job={job}
+              />
             </TabsContent>
             <TabsContent value='cover'>
               <CoverLetter application={application} job={job} />

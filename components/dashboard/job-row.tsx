@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
 import { ChevronRight, Percent } from 'lucide-react';
-import { JobDescription } from '@/lib/types';
+import { JobDescription } from '@/types/db';
 
 interface JobRowProps {
   job: JobDescription;
@@ -14,11 +14,11 @@ const JobRow = React.memo<JobRowProps>(
   ({ job, hasApp, score, scoreColorClass, onNavigate }) => {
     const formattedDate = useMemo(
       () =>
-        new Date(job.createdAt).toLocaleDateString(undefined, {
+        new Date(job.created_at).toLocaleDateString(undefined, {
           month: 'short',
           day: 'numeric',
         }),
-      [job.createdAt]
+      [job.created_at]
     );
 
     const handleClick = useCallback(() => {

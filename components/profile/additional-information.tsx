@@ -1,6 +1,6 @@
 import { Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { UserProfile } from '@/lib/types';
+import { UserProfile } from '@/types/db';
 import { Textarea } from '../ui/textarea';
 
 export const AdditionalInformation = ({
@@ -26,9 +26,9 @@ export const AdditionalInformation = ({
             <Textarea
               className='min-h-20 text-xs leading-relaxed'
               placeholder='Add any other relevant info, career goals, or preferences...'
-              value={profile.additionalInfo}
+              value={profile.additional_info || ''}
               onChange={(e) =>
-                setProfile({ ...profile, additionalInfo: e.target.value })
+                setProfile({ ...profile, additional_info: e.target.value })
               }
             />
             <p className='text-[9px] text-slate-400'>
@@ -38,7 +38,7 @@ export const AdditionalInformation = ({
           </div>
         ) : (
           <p className='text-xs text-slate-700 leading-relaxed whitespace-pre-wrap'>
-            {profile.additionalInfo || (
+            {profile.additional_info || (
               <span className='text-slate-400 italic'>
                 No additional information provided.
               </span>

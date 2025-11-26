@@ -3,20 +3,20 @@
 import { useState, useMemo } from 'react';
 import { Save, Pencil, Ban } from 'lucide-react';
 import { db } from '../services/db';
-import { UserProfile, SupportingDocument } from '../lib/types';
+import { UserProfile, SupportingDocument } from '../types/db';
 import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Spinner } from './ui/spinner';
+import { MainContainer } from './custom/main-container';
 import { ResumeImport } from './profile/resume-import';
-import { PersonalDetails } from './profile/personal-details';
 import { SupportingDocuments } from './profile/supporting-documents';
+import { PersonalDetails } from './profile/personal-details';
 import { Skills } from './profile/skills';
+import { Education } from './profile/education';
 import { Achievements } from './profile/achievements';
 import { ProfessionalSummary } from './profile/professional-summary';
 import { Experience } from './profile/experience';
-import { Education } from './profile/education';
 import { AdditionalInformation } from './profile/additional-information';
-import { MainContainer } from './custom/main-container';
 
 interface ProfileViewProps {
   userProfile: UserProfile | null;
@@ -30,38 +30,29 @@ export default function ProfileView({
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  const [profile, setProfile] = useState<UserProfile>(
-    userProfile || {
-      id: '',
-      fullName: '',
-      email: '',
-      phone: '',
-      location: '',
-      summary: '',
-      experience: [],
-      education: [],
-      achievements: [],
-      skills: { technical: [], soft: [], keywords: [] },
-      additionalInfo: '',
-    }
-  );
+  const initialProfileState: UserProfile = {
+    id: userProfile?.id || '',
+    user_id: userProfile?.user_id || '',
+    full_name: userProfile?.full_name || '',
+    email: userProfile?.email || '',
+    phone: userProfile?.phone || '',
+    location: userProfile?.location || null,
+    summary: userProfile?.summary || null,
+    resume_url: userProfile?.resume_url || null,
+    profile_picture_url: userProfile?.profile_picture_url || null,
+    additional_info: userProfile?.additional_info || null,
+    linkedin: userProfile?.linkedin || null,
+    portfolio: userProfile?.portfolio || null,
+    created_at: userProfile?.created_at || '',
+    experience: userProfile?.experience || [],
+    education: userProfile?.education || [],
+    achievements: userProfile?.achievements || [],
+    skills: userProfile?.skills || [],
+  };
 
-  // Store the last saved version to check for changes and revert
-  const [lastSavedProfile, setLastSavedProfile] = useState<UserProfile>(
-    userProfile || {
-      id: '',
-      fullName: '',
-      email: '',
-      phone: '',
-      location: '',
-      summary: '',
-      experience: [],
-      education: [],
-      achievements: [],
-      skills: { technical: [], soft: [], keywords: [] },
-      additionalInfo: '',
-    }
-  );
+  const [profile, setProfile] = useState<UserProfile>(initialProfileState);
+  const [lastSavedProfile, setLastSavedProfile] =
+    useState<UserProfile>(initialProfileState);
 
   const isDirty = useMemo(() => {
     if (!lastSavedProfile) return false;
@@ -69,16 +60,17 @@ export default function ProfileView({
   }, [profile, lastSavedProfile]);
 
   // ------------------- Profile CRUD Handlers -------------------
+
   const saveProfile = async () => {
     setIsSaving(true);
     try {
       await db.saveProfile(profile);
       setLastSavedProfile(profile);
-      setIsEditing(false); // Exit edit mode on save
+      setIsEditing(false);
       toast.success('Profile saved successfully!');
     } catch (e) {
       console.error(e);
-      toast.success('Failed to save profile. Please try again.');
+      toast.error('Failed to save profile. Please try again.'); // Changed to error
     } finally {
       setIsSaving(false);
     }
@@ -97,7 +89,7 @@ export default function ProfileView({
 
   return (
     <MainContainer>
-      {/* Header Section */}
+      {/* Header Section (No changes needed here) */}
       <div className='flex flex-col md:flex-row justify-between items-start md:items-center gap-3'>
         <div>
           <h1 className='text-lg font-bold text-slate-900 tracking-tight'>
@@ -107,7 +99,6 @@ export default function ProfileView({
             Manage the data ollie uses to tailor your applications.
           </p>
         </div>
-
         <div className='flex items-center gap-2'>
           {isEditing ? (
             <>
@@ -136,10 +127,8 @@ export default function ProfileView({
           )}
         </div>
       </div>
-
-      {/* Main Content Grid */}
+      {/* Main Content Grid (No changes needed in component props as the `profile` object structure is locally corrected) */}
       <div className='grid grid-cols-1 lg:grid-cols-12 gap-5'>
-        {/* Left Column - Sources & Personal Info */}
         <div className='lg:col-span-4 space-y-4'>
           {/* Resume Import Card */}
           <ResumeImport
@@ -147,21 +136,18 @@ export default function ProfileView({
             setProfile={setProfile}
             setLastSavedProfile={setLastSavedProfile}
           />
-
           {/* Supporting Documents Section */}
           <SupportingDocuments
             supportingDocuments={documents}
             setProfile={setProfile}
             setLastSavedProfile={setLastSavedProfile}
           />
-
           {/* Personal Details Card */}
           <PersonalDetails
             profile={profile}
             setProfile={setProfile}
             isEditing={isEditing}
           />
-
           {/* Skills Card - Categorized */}
           <Skills
             profile={profile}
@@ -169,22 +155,13 @@ export default function ProfileView({
             isEditing={isEditing}
           />
 
-          {/* Education Section */}
-          <Education
-            profile={profile}
-            setProfile={setProfile}
-            isEditing={isEditing}
-          />
-
-          {/* Achievements Section */}
-          <Achievements
+          {/* Additional Information */}
+          <AdditionalInformation
             profile={profile}
             setProfile={setProfile}
             isEditing={isEditing}
           />
         </div>
-
-        {/* Right Column - Experience & Summary */}
         <div className='lg:col-span-8 space-y-4'>
           {/* Professional Summary Section */}
           <ProfessionalSummary
@@ -192,16 +169,20 @@ export default function ProfileView({
             setProfile={setProfile}
             isEditing={isEditing}
           />
-
           {/* Work Experience Section */}
           <Experience
             profile={profile}
             setProfile={setProfile}
             isEditing={isEditing}
           />
-
-          {/* Additional Information */}
-          <AdditionalInformation
+          {/* Education Section */}
+          <Education
+            profile={profile}
+            setProfile={setProfile}
+            isEditing={isEditing}
+          />
+          {/* Achievements Section */}
+          <Achievements
             profile={profile}
             setProfile={setProfile}
             isEditing={isEditing}

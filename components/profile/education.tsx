@@ -1,7 +1,7 @@
 import { GraduationCap, Plus, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
-import { Education as EducationType, UserProfile } from '@/lib/types';
+import { Education as EducationType, UserProfile } from '@/types/db';
 import { Button } from '../ui/button';
 import { Field, FieldGroup, FieldLabel, FieldSet } from '../ui/field';
 
@@ -58,7 +58,7 @@ export const Education = ({
       <CardContent className='px-4 pt-4 pb-4 space-y-4'>
         {profile.education.map((edu, idx) => (
           <div
-            key={edu.id || idx}
+            key={idx}
             className='relative pl-3 border-l-4 border-slate-200 transition-colors group'>
             {isEditing && (
               <button

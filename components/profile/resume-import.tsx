@@ -1,3 +1,5 @@
+'use client';
+
 import { FileText, Upload } from 'lucide-react';
 import { CardHeader, CardTitle } from '../ui/card';
 import { Spinner } from '../ui/spinner';
@@ -8,7 +10,7 @@ import {
   handleDragOver,
 } from '../../utils/document';
 import { parseResumeWithGemini } from '@/services/geminiService';
-import { UserProfile, SkillCategories } from '@/lib/types';
+import { UserProfile } from '@/types/db';
 import { toast } from 'sonner';
 import { db } from '@/services/db';
 
@@ -32,30 +34,21 @@ export const ResumeImport = ({
     setIsParsing(true);
     try {
       const base64String = await fileToBase64(file);
+      // Assume parsedData fields like 'fullName' are still camelCase from Gemini
       const parsedData = await parseResumeWithGemini(base64String, file.type);
 
       // Merge parsed skills (which are categorized) with existing
-      const mergedSkills: SkillCategories = {
-        technical: Array.from(
-          new Set([
-            ...profile.skills.technical,
-            ...(parsedData?.skills?.technical || []),
-          ])
-        ),
-        soft: Array.from(
-          new Set([...profile.skills.soft, ...(parsedData?.skills?.soft || [])])
-        ),
-        keywords: Array.from(
-          new Set([
-            ...profile.skills.keywords,
-            ...(parsedData?.skills?.keywords || []),
-          ])
-        ),
-      };
-
+      const mergedSkills: string[] = Array.from(
+        new Set([
+          ...profile.skills,
+          ...(parsedData?.skills?.technical || []),
+          ...(parsedData?.skills?.soft || []),
+          ...(parsedData?.skills?.keywords || []),
+        ])
+      );
       const newProfile: UserProfile = {
         ...profile,
-        fullName: parsedData?.fullName || profile.fullName,
+        full_name: parsedData?.full_name || profile.full_name,
         summary: parsedData?.summary || profile.summary,
         skills: mergedSkills,
         experience: parsedData?.experience || profile.experience,
@@ -64,6 +57,7 @@ export const ResumeImport = ({
       };
 
       setProfile(newProfile);
+
       await db.saveProfile(newProfile);
       setLastSavedProfile(newProfile);
       toast.success('Resume parsed and profile updated successfully!');
@@ -93,12 +87,12 @@ export const ResumeImport = ({
   return (
     <label
       className={`block bg-white rounded-xl border transition-all duration-200 overflow-hidden shadow-sm cursor-pointer group
-              ${
-                isResumeDragOver
-                  ? 'border-blue-500 ring-2 ring-blue-100'
-                  : 'border-slate-200 hover:border-blue-300'
-              }
-            `}
+       ${
+         isResumeDragOver
+           ? 'border-blue-500 ring-2 ring-blue-100'
+           : 'border-slate-200 hover:border-blue-300'
+       }
+      `}
       onDragOver={(e) => handleDragOver(e, setIsResumeDragOver)}
       onDragLeave={(e) => handleDragLeave(e, setIsResumeDragOver)}
       onDrop={handleResumeDrop}>

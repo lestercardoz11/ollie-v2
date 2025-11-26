@@ -7,7 +7,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
 } from '@/components/ui/sidebar';
-import { JobDescription, UserProfile } from '@/lib/types';
+import { JobDescription, UserProfile } from '@/types/db';
 import { LayoutDashboard, PlusCircle, Bot } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { NavMain } from './nav-main';
@@ -64,7 +64,7 @@ export default function AppSidebar({
         </NavContent>
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={{ name: user.fullName, email: user.email }} />
+        <NavUser user={{ name: user.full_name, email: user.email }} />
       </SidebarFooter>
     </Sidebar>
   );

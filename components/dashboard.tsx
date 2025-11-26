@@ -2,7 +2,7 @@
 
 import React, { useMemo, useCallback } from 'react';
 import { Plus, FileText, Clock, Activity } from 'lucide-react';
-import { JobDescription, GeneratedApplication, UserProfile } from '@/lib/types';
+import { JobDescription, GeneratedApplication, UserProfile } from '@/types/db';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,26 +28,21 @@ export default function DashboardView({
       if (!userProfile) return 0;
 
       let score = 10;
-      const jobTextLower = job.rawText.toLowerCase();
+      const jobTextLower = job.raw_text.toLowerCase();
       const jobTitleLower = job.title.toLowerCase();
 
       const titleKeywords = jobTitleLower
         .split(/\s+/)
         .filter((w) => w.length > 3);
 
-      const hasRelevantExperience = userProfile.experience.some((exp) => {
+      const hasRelevantExperience = userProfile.experience?.some((exp) => {
         const roleLower = exp.role.toLowerCase();
         return titleKeywords.some((k) => roleLower.includes(k));
       });
 
       if (hasRelevantExperience) score += 25;
 
-      const allSkills = [
-        ...userProfile.skills.technical,
-        ...userProfile.skills.soft,
-        ...userProfile.skills.keywords,
-      ];
-
+      const allSkills = userProfile.skills ? userProfile.skills : [];
       if (allSkills.length > 0) {
         const matchedSkills = allSkills.filter((skill) =>
           jobTextLower.includes(skill.toLowerCase())
@@ -68,7 +63,7 @@ export default function DashboardView({
 
   const jobsWithMetadata = useMemo(() => {
     return jobs.map((job) => {
-      const hasApp = apps.some((a) => a.jobId === job.id);
+      const hasApp = apps.some((a) => a.job_id === job.id);
       const score = calculateMatchScore(job, profile);
       const scoreColorClass = getScoreColor(score);
 

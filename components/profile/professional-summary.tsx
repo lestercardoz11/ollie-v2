@@ -1,6 +1,6 @@
 import { FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { UserProfile } from '@/lib/types';
+import { UserProfile } from '@/types/db';
 import { Textarea } from '../ui/textarea';
 
 export const ProfessionalSummary = ({
@@ -25,7 +25,7 @@ export const ProfessionalSummary = ({
           <Textarea
             className='min-h-20 text-xs leading-relaxed'
             placeholder='A brief overview of your career...'
-            value={profile.summary}
+            value={profile.summary || ''}
             onChange={(e) =>
               setProfile({ ...profile, summary: e.target.value })
             }

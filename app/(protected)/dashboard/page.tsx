@@ -1,5 +1,5 @@
 import DashboardView from '@/components/dashboard';
-import { GeneratedApplication, JobDescription, UserProfile } from '@/lib/types';
+import { GeneratedApplication, JobDescription, UserProfile } from '@/types/db';
 import { db } from '@/services/db-server';
 
 export default async function DashboardPage() {

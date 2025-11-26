@@ -9,10 +9,9 @@ export default async function ApplicationPackagePage({
 }) {
   const { id } = await params;
 
-  const [job, profile, existingApp] = await Promise.all([
+  const [job, profile] = await Promise.all([
     db.getJobById(id),
     db.getProfile(),
-    db.getApplicationByJobId(id),
   ]);
 
   if (!profile) redirect('/dashboard');
@@ -22,7 +21,7 @@ export default async function ApplicationPackagePage({
     <ApplicationPackageView
       profile={profile}
       job={job}
-      generatedApplication={existingApp}
+      generatedApplication={await db.getApplicationWithDetails(job.id)}
     />
   );
 }

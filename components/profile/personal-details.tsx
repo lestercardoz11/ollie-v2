@@ -1,7 +1,7 @@
 import { User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
-import { UserProfile } from '@/lib/types';
+import { UserProfile } from '@/types/db';
 import { Field, FieldLabel } from '../ui/field';
 
 export const PersonalDetails = ({
@@ -27,15 +27,15 @@ export const PersonalDetails = ({
           {isEditing ? (
             <Input
               id='fullName'
-              value={profile.fullName}
+              value={profile.full_name}
               onChange={(e) =>
-                setProfile({ ...profile, fullName: e.target.value })
+                setProfile({ ...profile, full_name: e.target.value })
               }
               placeholder='Jane Doe'
             />
           ) : (
             <div className='text-xs text-slate-700 flex items-center'>
-              {profile.fullName || '-'}
+              {profile.full_name || '-'}
             </div>
           )}
         </Field>
@@ -61,7 +61,7 @@ export const PersonalDetails = ({
           {isEditing ? (
             <Input
               id='location'
-              value={profile.location}
+              value={profile.location || ''}
               onChange={(e) =>
                 setProfile({ ...profile, location: e.target.value })
               }

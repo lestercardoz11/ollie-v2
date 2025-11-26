@@ -8,7 +8,7 @@ import {
   X,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { SkillCategories, SupportingDocument, UserProfile } from '@/lib/types';
+import { SupportingDocument, UserProfile } from '@/types/db';
 import {
   fileToBase64,
   handleDragLeave,
@@ -111,15 +111,15 @@ export const SupportingDocuments = ({
         if (totalNewSkills > 0 || newEdu.length > 0) {
           setProfile((prev) => {
             // Merge logic
-            const updatedSkills: SkillCategories = {
-              technical: Array.from(
-                new Set([...prev.skills.technical, ...newTech])
-              ),
-              soft: Array.from(new Set([...prev.skills.soft, ...newSoft])),
-              keywords: Array.from(
-                new Set([...prev.skills.keywords, ...newKeys])
-              ),
-            };
+            // const updatedSkills: SkillCategories = {
+            //   technical: Array.from(
+            //     new Set([...prev.skills.technical, ...newTech])
+            //   ),
+            //   soft: Array.from(new Set([...prev.skills.soft, ...newSoft])),
+            //   keywords: Array.from(
+            //     new Set([...prev.skills.keywords, ...newKeys])
+            //   ),
+            // };
 
             // Simple de-dupe for education based on school name
             const existingSchools = new Set(
@@ -132,7 +132,7 @@ export const SupportingDocuments = ({
 
             const updatedProfile = {
               ...prev,
-              skills: updatedSkills,
+              // skills: updatedSkills,
               education: [...prev.education, ...uniqueNewEdu],
             };
 
@@ -373,7 +373,7 @@ export const SupportingDocuments = ({
                   <Paperclip size={10} className='text-slate-400' />
                 </div>
                 <a
-                  href={doc.fileUrl}
+                  href={doc.file_url}
                   target='_blank'
                   rel='noopener noreferrer'
                   className='text-[10px] text-slate-700 truncate hover:text-blue-600 font-medium hover:underline max-w-[120px]'>

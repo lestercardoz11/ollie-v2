@@ -1,11 +1,8 @@
+'use client';
+
 import { Bot, SendHorizonal, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import {
-  ChatMessage,
-  GeneratedApplication,
-  JobDescription,
-  UserProfile,
-} from '@/lib/types';
+import { GeneratedApplication, JobDescription, UserProfile } from '@/types/db';
 import {
   chatWithCareerCoach,
   analyzeProfileUpdate,
@@ -19,6 +16,7 @@ import {
   InputGroupTextarea,
 } from '../ui/input-group';
 import { Card } from '../ui/card';
+import { ChatMessage } from '@/types/ai';
 
 export const Chat = ({
   profile,
@@ -60,11 +58,14 @@ export const Chat = ({
       if (extractedInfo) {
         const updatedProfile = {
           ...profile,
-          additionalInfo: profile.additionalInfo
-            ? `${profile.additionalInfo}\n${extractedInfo}`
+          // 🐛 FIX: Change `additionalInfo` to `additional_info` for the snake_case schema
+          additional_info: profile.additional_info // Read from snake_case
+            ? `${profile.additional_info}\n${extractedInfo}`
             : extractedInfo,
         };
         await db.saveProfile(updatedProfile);
+        // NOTE: setProfile is commented out, but if it were active,
+        // it would correctly update the parent component's state with snake_case keys.
         // setProfile(updatedProfile);
       }
 
@@ -168,7 +169,7 @@ export const Chat = ({
                   size={'icon-sm'}
                   type='submit'
                   disabled={isChatThinking || !chatInput.trim()}>
-                  <SendHorizonal />
+                  <SendHorizonal className='h-4 w-4' />
                 </InputGroupButton>
               </InputGroupAddon>
             </InputGroup>

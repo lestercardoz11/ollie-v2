@@ -1,7 +1,7 @@
 import { Briefcase, Plus, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
-import { UserProfile, WorkExperience } from '@/lib/types';
+import { UserProfile, WorkExperience } from '@/types/db';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Field, FieldGroup, FieldLabel, FieldSet } from '../ui/field';
@@ -66,7 +66,7 @@ export const Experience = ({
       <CardContent className='px-4 pt-4 pb-4 space-y-4'>
         {profile.experience.map((exp, idx) => (
           <div
-            key={exp.id || idx}
+            key={idx}
             className='relative pl-3 border-l-4 border-slate-200 transition-colors group'>
             {/* Remove Button - Edit Mode Only */}
             {isEditing && (

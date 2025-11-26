@@ -1,5 +1,5 @@
 import { useRouter } from 'next/navigation';
-import { Button } from '../custom/button';
+import { Button } from '../ui/button';
 
 export default function CTA() {
   const router = useRouter();

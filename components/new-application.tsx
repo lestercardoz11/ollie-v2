@@ -30,7 +30,7 @@ export default function NewApplicationView() {
       const jobId = await db.saveJob({
         title,
         company,
-        rawText,
+        raw_text: rawText,
       });
       toast.success('Job saved successfully! Generating application...');
       router.push(`/application-package/${jobId}`);

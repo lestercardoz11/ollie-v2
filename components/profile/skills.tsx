@@ -1,3 +1,5 @@
+'use client';
+
 import {
   Cpu,
   Lightbulb,
@@ -8,7 +10,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
-import { SkillCategories, UserProfile } from '@/lib/types';
+import { Skill, UserProfile } from '@/types/db';
 import { Button } from '../ui/button';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -21,6 +23,13 @@ import {
   SelectValue,
 } from '../ui/select';
 
+// Redefine SkillCategories to group the flat array for rendering
+type CategorizedSkills = {
+  technical: string[];
+  soft: string[];
+  keywords: string[];
+};
+
 export const Skills = ({
   profile,
   setProfile,
@@ -32,33 +41,42 @@ export const Skills = ({
 }) => {
   // Skills Input State
   const [skillInput, setSkillInput] = useState('');
-  const [selectedSkillCategory, setSelectedSkillCategory] =
-    useState<keyof SkillCategories>('technical');
+  const [selectedSkillCategory, setSelectedSkillCategory] = useState<
+    'technical' | 'soft' | 'keywords'
+  >('technical');
+
+  const categorizedSkills: CategorizedSkills = {
+    technical: profile.skills,
+    soft: [],
+    keywords: [],
+  };
 
   // Skills Handlers
   const handleAddSkill = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!skillInput.trim()) return;
+    const skillName = skillInput.trim();
+    if (!skillName) return;
 
     const category = selectedSkillCategory;
-    const currentSkills = profile.skills[category];
 
-    // Check for duplicates (case insensitive)
-    const exists = currentSkills.some(
-      (s) => s.toLowerCase() === skillInput.trim().toLowerCase()
+    const exists = profile.skills.some(
+      (s) => s.toLowerCase() === skillName.toLowerCase()
     );
     if (exists) {
       setSkillInput('');
-      toast.info(`Skill already exists in ${category.toString()}!`);
+      toast.info(`Skill "${skillName}" already exists!`);
       return;
     }
 
+    const newSkill: Skill = {
+      id: Date.now().toString(),
+      name: skillName,
+      category: category,
+    };
+
     setProfile((prev) => ({
       ...prev,
-      skills: {
-        ...prev.skills,
-        [category]: [...prev.skills[category], skillInput.trim()],
-      },
+      skills: [...prev.skills, newSkill.name],
     }));
     setSkillInput('');
   };
@@ -70,17 +88,12 @@ export const Skills = ({
     }
   };
 
-  const handleRemoveSkill = (
-    category: keyof SkillCategories,
-    skillToRemove: string
-  ) => {
+  const handleRemoveSkill = (skillId: string) => {
     if (!isEditing) return;
+
     setProfile((prev) => ({
       ...prev,
-      skills: {
-        ...prev.skills,
-        [category]: prev.skills[category].filter((s) => s !== skillToRemove),
-      },
+      skills: prev.skills.filter((s) => s !== skillId),
     }));
   };
 
@@ -100,7 +113,7 @@ export const Skills = ({
                 <Field orientation={'horizontal'}>
                   <Select
                     value={selectedSkillCategory}
-                    onValueChange={(value: keyof SkillCategories) =>
+                    onValueChange={(value: 'technical' | 'soft' | 'keywords') =>
                       setSelectedSkillCategory(value)
                     }>
                     <SelectTrigger className='w-full'>
@@ -124,7 +137,7 @@ export const Skills = ({
                     onClick={() => handleAddSkill()}
                     size='icon'
                     variant={'ghost'}>
-                    <Plus />
+                    <Plus className='h-4 w-4' />
                   </Button>
                 </Field>
               </FieldGroup>
@@ -144,12 +157,12 @@ export const Skills = ({
             </span>
           </div>
           <div className='flex flex-wrap gap-1.5 content-start'>
-            {profile.skills.technical.length === 0 ? (
+            {categorizedSkills.technical.length === 0 ? (
               <span className='text-[10px] text-slate-400 italic'>
                 No technical skills.
               </span>
             ) : (
-              profile.skills.technical.map((skill, idx) => (
+              categorizedSkills.technical.map((skill, idx) => (
                 <div
                   key={idx}
                   className={`inline-flex items-center bg-white border border-blue-100 text-blue-700 rounded-full px-2 py-0.5 text-[10px] font-medium shadow-sm ${
@@ -158,7 +171,7 @@ export const Skills = ({
                   <span>{skill}</span>
                   {isEditing && (
                     <button
-                      onClick={() => handleRemoveSkill('technical', skill)}
+                      onClick={() => handleRemoveSkill(skill)}
                       className='ml-1 text-blue-300 hover:text-red-500'>
                       <XCircle size={10} />
                     </button>
@@ -178,12 +191,13 @@ export const Skills = ({
             </span>
           </div>
           <div className='flex flex-wrap gap-1.5 content-start'>
-            {profile.skills.soft.length === 0 ? (
+            {/* 🐛 FIX 5: Use categorizedSkills for rendering */}
+            {categorizedSkills.soft.length === 0 ? (
               <span className='text-[10px] text-slate-400 italic'>
                 No soft skills.
               </span>
             ) : (
-              profile.skills.soft.map((skill, idx) => (
+              categorizedSkills.soft.map((skill, idx) => (
                 <div
                   key={idx}
                   className={`inline-flex items-center bg-white border border-emerald-100 text-emerald-700 rounded-full px-2 py-0.5 text-[10px] font-medium shadow-sm ${
@@ -192,7 +206,7 @@ export const Skills = ({
                   <span>{skill}</span>
                   {isEditing && (
                     <button
-                      onClick={() => handleRemoveSkill('soft', skill)}
+                      onClick={() => handleRemoveSkill(skill)}
                       className='ml-1 text-emerald-300 hover:text-red-500'>
                       <XCircle size={10} />
                     </button>
@@ -212,12 +226,13 @@ export const Skills = ({
             </span>
           </div>
           <div className='flex flex-wrap gap-1.5 content-start'>
-            {profile.skills.keywords.length === 0 ? (
+            {/* 🐛 FIX 5: Use categorizedSkills for rendering */}
+            {categorizedSkills.keywords.length === 0 ? (
               <span className='text-[10px] text-slate-400 italic'>
                 No keywords.
               </span>
             ) : (
-              profile.skills.keywords.map((skill, idx) => (
+              categorizedSkills.keywords.map((skill, idx) => (
                 <div
                   key={idx}
                   className={`inline-flex items-center bg-white border border-purple-100 text-purple-700 rounded-full px-2 py-0.5 text-[10px] font-medium shadow-sm ${
@@ -226,7 +241,7 @@ export const Skills = ({
                   <span>{skill}</span>
                   {isEditing && (
                     <button
-                      onClick={() => handleRemoveSkill('keywords', skill)}
+                      onClick={() => handleRemoveSkill(skill)}
                       className='ml-1 text-purple-300 hover:text-red-500'>
                       <XCircle size={10} />
                     </button>
