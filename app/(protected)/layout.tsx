@@ -1,9 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/utils/supabase/server';
-import Sidebar from '@/components/custom/sidebar';
-import { Header } from '@/components/custom/header';
-import { JobDescription } from '@/lib/types';
+import { JobDescription, UserProfile } from '@/lib/types';
 import { db } from '@/services/db-server';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/custom/app-sidebar';
@@ -21,11 +19,17 @@ export default async function ProtectedLayout({
   }
 
   const jobs: JobDescription[] = await db.getJobs();
+  const user: UserProfile | null = await db.getProfile();
+
+  if (!user) {
+    supabase.auth.signOut();
+    redirect('/');
+  }
 
   return (
     <SidebarProvider>
       <div className='flex h-screen w-full bg-slate-50 text-slate-900 overflow-hidden font-sans'>
-        <AppSidebar recentJobs={jobs} />
+        <AppSidebar user={user} recentJobs={jobs} />
 
         <SidebarInset>
           <div className='flex-1 flex flex-col h-full min-w-0'>

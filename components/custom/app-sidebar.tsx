@@ -4,25 +4,24 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
 } from '@/components/ui/sidebar';
-import { JobDescription } from '@/lib/types';
+import { JobDescription, UserProfile } from '@/lib/types';
 import { LayoutDashboard, PlusCircle, Bot } from 'lucide-react';
-import { useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
-import { Item, ItemContent, ItemMedia, ItemTitle } from '../ui/item';
+import { useRouter } from 'next/navigation';
 import { NavMain } from './nav-main';
+import { NavContent } from './nav-content';
+import { NavUser } from './nav-user';
 
 export default function AppSidebar({
+  user,
   recentJobs,
 }: {
+  user: UserProfile;
   recentJobs: JobDescription[];
 }) {
   const router = useRouter();
-  const pathname = usePathname();
 
   const navItems = [
     {
@@ -38,7 +37,7 @@ export default function AppSidebar({
   ];
 
   return (
-    <Sidebar className='border-r-0'>
+    <Sidebar className='border-slate-200'>
       <SidebarHeader>
         <div
           className='h-12 flex items-center px-2 border-b border-slate-200 cursor-pointer'
@@ -56,43 +55,17 @@ export default function AppSidebar({
         <NavMain items={navItems} />
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
+        <NavContent
+          items={recentJobs.map((job) => ({
+            title: job.title,
+            url: `/application-package/${job.id}`,
+          }))}>
           <SidebarGroupLabel>History</SidebarGroupLabel>
-          <SidebarGroupContent>
-            {recentJobs.length === 0 ? (
-              <div className='px-3 py-4 text-center border border-dashed border-slate-100 rounded-md'>
-                <p className='text-[10px] text-slate-400'>
-                  No applications yet
-                </p>
-              </div>
-            ) : (
-              recentJobs.map((job) => {
-                const jobPath = `/application-package/${job.id}`;
-                const isActive = pathname === jobPath;
-                return (
-                  <Link
-                    key={job.id}
-                    href={jobPath}
-                    className={`w-full block text-left px-3 py-2 rounded-md text-xs transition-colors group relative ${
-                      isActive
-                        ? 'bg-slate-100 text-slate-900 font-medium'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                    }`}>
-                    <div className='truncate pr-2'>{job.title}</div>
-                    <div className='truncate text-[10px] text-slate-400 group-hover:text-slate-500'>
-                      {job.company || 'Unknown'}
-                    </div>
-                    {isActive && (
-                      <div className='absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 bg-blue-600 rounded-r-full'></div>
-                    )}
-                  </Link>
-                );
-              })
-            )}
-          </SidebarGroupContent>
-        </SidebarGroup>
+        </NavContent>
       </SidebarContent>
-      <SidebarFooter />
+      <SidebarFooter>
+        <NavUser user={{ name: user.fullName, email: user.email }} />
+      </SidebarFooter>
     </Sidebar>
   );
 }
