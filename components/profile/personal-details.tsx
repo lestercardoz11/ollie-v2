@@ -21,59 +21,101 @@ export const PersonalDetails = ({
           <CardTitle className='text-xs'>Personal Details</CardTitle>
         </div>
       </CardHeader>
-      <CardContent className='space-y-4 p-4'>
-        <Field className='gap-0.5'>
-          <FieldLabel htmlFor='fullName'>Full Name</FieldLabel>
-          {isEditing ? (
-            <Input
-              id='fullName'
-              value={profile.full_name}
-              onChange={(e) =>
-                setProfile({ ...profile, full_name: e.target.value })
-              }
-              placeholder='Jane Doe'
-            />
-          ) : (
-            <div className='text-xs text-slate-700 flex items-center'>
-              {profile.full_name || '-'}
-            </div>
-          )}
-        </Field>
-        <Field className='gap-0.5'>
-          <FieldLabel htmlFor='email'>Email</FieldLabel>
-          {isEditing ? (
-            <Input
-              id='email'
-              value={profile.email}
-              onChange={(e) =>
-                setProfile({ ...profile, email: e.target.value })
-              }
-              placeholder='jane@example.com'
-            />
-          ) : (
-            <div className='text-xs text-slate-700 flex items-center'>
-              {profile.email || '-'}
-            </div>
-          )}
-        </Field>
-        <Field className='gap-0.5'>
-          <FieldLabel htmlFor='location'>Location</FieldLabel>
-          {isEditing ? (
-            <Input
-              id='location'
-              value={profile.location || ''}
-              onChange={(e) =>
-                setProfile({ ...profile, location: e.target.value })
-              }
-              placeholder='New York, NY'
-            />
-          ) : (
-            <div className='text-xs text-slate-700 flex items-center'>
-              {profile.location || '-'}
-            </div>
-          )}
-        </Field>
+      <CardContent className='grid grid-cols-1 md:grid-cols-2 space-y-4 p-4'>
+        <DetailField
+          field='full_name'
+          label='Full Name'
+          placeholder='Jane Doe'
+          isEditing={isEditing}
+          profile={profile}
+          setProfile={setProfile}
+        />
+        <DetailField
+          field='email'
+          label='Email'
+          placeholder='jane@example.com'
+          isEditing={isEditing}
+          profile={profile}
+          setProfile={setProfile}
+        />
+        <DetailField
+          field='phone'
+          label='Phone'
+          placeholder='+1 XXX-XXX-XXXX'
+          isEditing={isEditing}
+          profile={profile}
+          setProfile={setProfile}
+        />
+        <DetailField
+          field='linkedin'
+          label='Linkedin'
+          placeholder='https://www.linkedin.com/in/janedoe'
+          isEditing={isEditing}
+          profile={profile}
+          setProfile={setProfile}
+        />
+        <DetailField
+          field='location'
+          label='Location'
+          placeholder='New York, NY'
+          isEditing={isEditing}
+          profile={profile}
+          setProfile={setProfile}
+        />
+        <DetailField
+          field='portfolio'
+          label='Portfolio'
+          placeholder='www.janedoe.com'
+          isEditing={isEditing}
+          profile={profile}
+          setProfile={setProfile}
+        />
       </CardContent>
     </Card>
+  );
+};
+
+const DetailField = ({
+  field,
+  label,
+  placeholder,
+  isEditing,
+  profile,
+  setProfile,
+}: {
+  field: keyof UserProfile;
+  label: string;
+  placeholder: string;
+  isEditing: boolean;
+  profile: UserProfile;
+  setProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
+}) => {
+  const handleChange = (field: keyof UserProfile, value: string) => {
+    setProfile((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+  const value = profile[field] || '';
+
+  const inputValue = (typeof value === 'string' ? value : '').toString();
+
+  return (
+    <Field className='gap-0.5'>
+      <FieldLabel htmlFor={field as string} className='text-xs'>
+        {label}
+      </FieldLabel>
+      {isEditing ? (
+        <Input
+          id={field as string}
+          value={inputValue}
+          onChange={(e) => handleChange(field, e.target.value)}
+          placeholder={placeholder}
+          disabled={field === 'email'}
+        />
+      ) : (
+        <div className='text-sm text-slate-700'>{inputValue || '-'}</div>
+      )}
+    </Field>
   );
 };

@@ -11,10 +11,9 @@ import {
   Chat,
   Message,
   Skill,
-  GeneratedApplication,
 } from '@/types/db';
 
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/utils/supabase/client';
 import { QAResponse } from '@/types/ai';
 
 // Define the expected structured output from the Gemini service for saving
@@ -29,7 +28,7 @@ export const db = {
    * PROFILE OPERATIONS (Table: user_profiles) 👤
    */
   saveProfile: async (profile: Partial<UserProfile>): Promise<string> => {
-    const supabase = await createClient();
+    const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -48,6 +47,10 @@ export const db = {
       additional_info: profile.additional_info,
       linkedin: profile.linkedin,
       portfolio: profile.portfolio,
+      education: profile.education,
+      experience: profile.experience,
+      skills: profile.skills,
+      achievements: profile.achievements,
     };
 
     const { data, error } = await supabase
@@ -62,7 +65,7 @@ export const db = {
   },
 
   getProfile: async (): Promise<UserProfile | null> => {
-    const supabase = await createClient();
+    const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -84,15 +87,30 @@ export const db = {
     return data as UserProfile;
   },
 
-  // --- SKILLS Master List Operations ---
   getSkills: async (): Promise<Skill[]> => {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('skills')
-      .select('*')
+      .select('id, name, category') // Explicitly select columns for clarity
       .order('name');
     if (error) {
       console.error('Error fetching skills:', error);
+      return [];
+    }
+    return data as Skill[];
+  },
+
+  getSkillsByIds: async (skillIds: string[]): Promise<Skill[]> => {
+    if (skillIds.length === 0) return [];
+
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('skills')
+      .select('id, name, category')
+      .in('id', skillIds); // Use the 'in' filter to match multiple IDs
+
+    if (error) {
+      console.error('Error fetching profile skills by IDs:', error);
       return [];
     }
     return data as Skill[];
@@ -102,7 +120,7 @@ export const db = {
    * DOCUMENT OPERATIONS (Table: supporting_documents) 📄
    */
   uploadDocument: async (file: File): Promise<SupportingDocument> => {
-    const supabase = await createClient();
+    const supabase = createClient();
     const bucketName = 'documents';
 
     const {
@@ -147,7 +165,7 @@ export const db = {
   },
 
   getDocuments: async (): Promise<SupportingDocument[]> => {
-    const supabase = await createClient();
+    const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -167,7 +185,7 @@ export const db = {
   },
 
   deleteDocument: async (documentId: string): Promise<void> => {
-    const supabase = await createClient();
+    const supabase = createClient();
     const bucketName = 'documents';
 
     // 1. Fetch document to get path
@@ -203,7 +221,7 @@ export const db = {
   saveJob: async (
     job: Omit<JobDescription, 'id' | 'created_at'>
   ): Promise<string> => {
-    const supabase = await createClient();
+    const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -229,7 +247,7 @@ export const db = {
   },
 
   getJobs: async (): Promise<JobDescription[]> => {
-    const supabase = await createClient();
+    const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -264,7 +282,7 @@ export const db = {
   },
 
   getJobById: async (id: string): Promise<JobDescription | undefined> => {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from('job_descriptions')
       .select('*')
@@ -283,7 +301,7 @@ export const db = {
     userId: string,
     cvData: Omit<TailoredCV, 'id' | 'user_id' | 'created_at'>
   ): Promise<string> => {
-    const supabase = await createClient();
+    const supabase = createClient();
 
     // Payload maps the nested JSON arrays to the JSONB columns
     const payload = {
@@ -312,7 +330,7 @@ export const db = {
     chatId: string | null,
     generationOutput: Pick<GeneratedApplicationPackage, 'cover_letter_markdown'>
   ): Promise<string> => {
-    const supabase = await createClient();
+    const supabase = createClient();
 
     const payload = {
       job_id: jobId,
@@ -333,28 +351,10 @@ export const db = {
     return data.id;
   },
 
-  getApplications: async (): Promise<GeneratedApplication[]> => {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return [];
-
-    const { data, error } = await supabase
-      .from('generated_applications')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) return [];
-
-    return data as GeneratedApplication[];
-  },
-
   getApplicationWithDetails: async (
     jobId: string
   ): Promise<ApplicationWithDetails | undefined> => {
-    const supabase = await createClient();
+    const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -365,11 +365,11 @@ export const db = {
       .from('generated_applications')
       .select(
         `
-        *,
-        job:job_id (*),
-        tailored_cv:tailored_cv_id (*),
-        chat:chat_id (*)
-      `
+          *,
+          job:job_id (*),
+          tailored_cv:tailored_cv_id (*),
+          chat:chat_id (*)
+        `
       )
       .eq('job_id', jobId)
       .eq('user_id', user.id)
@@ -392,7 +392,7 @@ export const db = {
     title: string | null = null,
     applicationId: string | null = null
   ): Promise<string> => {
-    const supabase = await createClient();
+    const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -419,7 +419,7 @@ export const db = {
     applicationId: string,
     chatId: string
   ): Promise<void> => {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { error } = await supabase
       .from('generated_applications')
       .update({ chat_id: chatId })
@@ -428,7 +428,7 @@ export const db = {
   },
 
   getChats: async (userId: string): Promise<Chat[]> => {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from('chats')
       .select('*')
@@ -445,7 +445,7 @@ export const db = {
   getChatWithMessages: async (
     chatId: string
   ): Promise<ChatWithMessages | null> => {
-    const supabase = await createClient();
+    const supabase = createClient();
 
     const { data, error } = await supabase
       .from('chats')
@@ -468,7 +468,7 @@ export const db = {
   addMessage: async (
     message: Omit<Message, 'id' | 'created_at'>
   ): Promise<string> => {
-    const supabase = await createClient();
+    const supabase = createClient();
 
     const { data, error } = await supabase
       .from('messages')
@@ -489,7 +489,7 @@ export const db = {
   },
 
   getMessagesByChatId: async (chatId: string): Promise<MessageWithUser[]> => {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from('messages')
       .select(

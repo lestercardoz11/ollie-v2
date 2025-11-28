@@ -1,6 +1,6 @@
 import DashboardView from '@/components/dashboard';
 import { GeneratedApplication, JobDescription, UserProfile } from '@/types/db';
-import { db } from '@/services/db-server';
+import { db } from '@/services/server-client/db';
 
 export default async function DashboardPage() {
   const [jobsData, appsData, profileData] = await Promise.all([

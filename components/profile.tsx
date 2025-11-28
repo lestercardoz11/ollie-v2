@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import { Save, Pencil, Ban } from 'lucide-react';
-import { db } from '../services/db';
-import { UserProfile, SupportingDocument } from '../types/db';
+import { db } from '../services/browser-client/db';
+import { UserProfile, SupportingDocument, Skill } from '../types/db';
 import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Spinner } from './ui/spinner';
@@ -21,11 +21,13 @@ import { AdditionalInformation } from './profile/additional-information';
 interface ProfileViewProps {
   userProfile: UserProfile | null;
   documents: SupportingDocument[];
+  skills: Skill[];
 }
 
 export default function ProfileView({
   userProfile,
   documents,
+  skills,
 }: ProfileViewProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -142,17 +144,13 @@ export default function ProfileView({
             setProfile={setProfile}
             setLastSavedProfile={setLastSavedProfile}
           />
-          {/* Personal Details Card */}
-          <PersonalDetails
-            profile={profile}
-            setProfile={setProfile}
-            isEditing={isEditing}
-          />
+
           {/* Skills Card - Categorized */}
           <Skills
             profile={profile}
             setProfile={setProfile}
             isEditing={isEditing}
+            skills={skills}
           />
 
           {/* Additional Information */}
@@ -163,6 +161,13 @@ export default function ProfileView({
           />
         </div>
         <div className='lg:col-span-8 space-y-4'>
+          {/* Personal Details Card */}
+          <PersonalDetails
+            profile={profile}
+            setProfile={setProfile}
+            isEditing={isEditing}
+          />
+
           {/* Professional Summary Section */}
           <ProfessionalSummary
             profile={profile}

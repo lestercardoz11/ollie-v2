@@ -121,8 +121,9 @@ export const Education = ({
           </div>
         ))}
         {profile.education.length === 0 && (
-          <div className='text-center py-4'>
-            <p className='text-slate-400 text-[10px]'>No education listed.</p>
+          <div className='text-center py-6 bg-slate-50 rounded-lg border border-dashed border-slate-200'>
+            <GraduationCap className='mx-auto h-5 w-5 text-slate-300 mb-1' />
+            <p className='text-slate-500 text-[10px]'>No education yet.</p>
           </div>
         )}
       </CardContent>

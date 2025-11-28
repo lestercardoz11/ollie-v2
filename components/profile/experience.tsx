@@ -171,15 +171,6 @@ export const Experience = ({
           <div className='text-center py-6 bg-slate-50 rounded-lg border border-dashed border-slate-200'>
             <Briefcase className='mx-auto h-5 w-5 text-slate-300 mb-1' />
             <p className='text-slate-500 text-[10px]'>No experience yet.</p>
-            {isEditing && (
-              <Button
-                variant='ghost'
-                size='sm'
-                onClick={addExperience}
-                className='mt-1 h-6 text-xs text-blue-600'>
-                Add Manually
-              </Button>
-            )}
           </div>
         )}
       </CardContent>

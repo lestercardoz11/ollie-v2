@@ -3,12 +3,9 @@
 import { Bot, SendHorizonal, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { GeneratedApplication, JobDescription, UserProfile } from '@/types/db';
-import {
-  chatWithCareerCoach,
-  analyzeProfileUpdate,
-} from '@/services/geminiService';
+import { chatWithCareerCoach, analyzeProfileUpdate } from '@/services/gemini';
 import ReactMarkdown from 'react-markdown';
-import { db } from '@/services/db';
+import { db } from '@/services/browser-client/db';
 import {
   InputGroup,
   InputGroupAddon,

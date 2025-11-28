@@ -20,7 +20,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Spinner } from '../ui/spinner';
 import { Bot } from 'lucide-react';
-import { db } from '@/services/db-server';
+import { db } from '@/services/server-client/db';
 
 export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   const [email, setEmail] = useState('');

@@ -11,7 +11,9 @@ import { ParsedResumeData, QAResponse, WritingTone } from '@/types/ai';
 
 // Initialize Client
 // NOTE: API Key must be set in the execution environment or retrieved securely.
-const ai = new GoogleGenAI({});
+const ai = new GoogleGenAI({
+  apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || '',
+});
 
 /**
  * Helper to map raw API errors to user-friendly messages with detailed logging.

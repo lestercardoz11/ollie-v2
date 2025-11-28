@@ -16,8 +16,8 @@ import {
 } from '../../utils/document';
 import { toast } from 'sonner';
 import { useState } from 'react';
-import { db } from '@/services/db';
-import { parseSupportingDocWithGemini } from '@/services/geminiService';
+import { db } from '@/services/browser-client/db';
+import { parseSupportingDocWithGemini } from '@/services/gemini';
 
 const MAX_DOCS = 10;
 
@@ -121,7 +121,6 @@ export const SupportingDocuments = ({
             //   ),
             // };
 
-            // Simple de-dupe for education based on school name
             const existingSchools = new Set(
               prev.education.map((e) => e.school.toLowerCase())
             );

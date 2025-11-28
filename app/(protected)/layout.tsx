@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 
 import { createClient } from '@/utils/supabase/server';
 import { JobDescription, UserProfile } from '@/types/db';
-import { db } from '@/services/db-server';
+import { db } from '@/services/server-client/db';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/custom/app-sidebar';
 

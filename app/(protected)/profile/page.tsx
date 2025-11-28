@@ -1,5 +1,5 @@
 import ProfileView from '@/components/profile';
-import { db } from '@/services/db-server';
+import { db } from '@/services/server-client/db';
 
 export default async function ProfilePage() {
   const [savedProfile, savedDocs] = await Promise.all([
@@ -7,5 +7,13 @@ export default async function ProfilePage() {
     db.getDocuments(),
   ]);
 
-  return <ProfileView userProfile={savedProfile} documents={savedDocs} />;
+  const skills = await db.getSkillsByIds(savedProfile?.skills || []);
+
+  return (
+    <ProfileView
+      userProfile={savedProfile}
+      documents={savedDocs}
+      skills={skills}
+    />
+  );
 }

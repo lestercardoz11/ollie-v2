@@ -9,10 +9,10 @@ import {
   handleDragLeave,
   handleDragOver,
 } from '../../utils/document';
-import { parseResumeWithGemini } from '@/services/geminiService';
+import { parseResumeWithGemini } from '@/services/gemini';
 import { UserProfile } from '@/types/db';
 import { toast } from 'sonner';
-import { db } from '@/services/db';
+import { db } from '@/services/browser-client/db';
 
 export const ResumeImport = ({
   profile,
@@ -36,6 +36,7 @@ export const ResumeImport = ({
       const base64String = await fileToBase64(file);
       // Assume parsedData fields like 'fullName' are still camelCase from Gemini
       const parsedData = await parseResumeWithGemini(base64String, file.type);
+      const newDoc = await db.uploadDocument(file);
 
       // Merge parsed skills (which are categorized) with existing
       const mergedSkills: string[] = Array.from(
@@ -54,6 +55,7 @@ export const ResumeImport = ({
         experience: parsedData?.experience || profile.experience,
         education: parsedData?.education || profile.education,
         achievements: parsedData?.achievements || profile.achievements,
+        resume_url: newDoc?.file_url || profile.resume_url,
       };
 
       setProfile(newProfile);

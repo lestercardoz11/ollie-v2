@@ -60,9 +60,10 @@ export const Achievements = ({
       </CardHeader>
       <CardContent className='px-4 pt-4 pb-4 space-y-4'>
         {profile.achievements.length === 0 ? (
-          <span className='text-xs text-slate-400 leading-relaxed whitespace-pre-wrap italic'>
-            No achievements listed.
-          </span>
+          <div className='text-center py-6 bg-slate-50 rounded-lg border border-dashed border-slate-200'>
+            <Trophy className='mx-auto h-5 w-5 text-slate-300 mb-1' />
+            <p className='text-slate-500 text-[10px]'>No achievements yet.</p>
+          </div>
         ) : (
           profile.achievements.map((ach, idx) => (
             <div

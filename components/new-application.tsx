@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { ArrowRight, Briefcase } from 'lucide-react';
-import { db } from '../services/db';
+import { db } from '../services/browser-client/db';
 import { toast } from 'sonner';
 import { Card, CardContent } from './ui/card';
 import { Input } from './ui/input';

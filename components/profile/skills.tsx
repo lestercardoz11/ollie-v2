@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
-import { Skill, UserProfile } from '@/types/db';
+import { Skill, SkillCategory, UserProfile } from '@/types/db';
 import { Button } from '../ui/button';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -34,21 +34,26 @@ export const Skills = ({
   profile,
   setProfile,
   isEditing,
+  skills,
 }: {
   profile: UserProfile;
   setProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
   isEditing: boolean;
+  skills: Skill[];
 }) => {
   // Skills Input State
   const [skillInput, setSkillInput] = useState('');
-  const [selectedSkillCategory, setSelectedSkillCategory] = useState<
-    'technical' | 'soft' | 'keywords'
-  >('technical');
+  const [selectedSkillCategory, setSelectedSkillCategory] =
+    useState<SkillCategory>('technical');
 
   const categorizedSkills: CategorizedSkills = {
-    technical: profile.skills,
-    soft: [],
-    keywords: [],
+    technical: skills
+      .filter((s) => s.category === 'technical')
+      .map((s) => s.name),
+    soft: skills.filter((s) => s.category === 'soft').map((s) => s.name),
+    keywords: skills
+      .filter((s) => s.category === 'keywords')
+      .map((s) => s.name),
   };
 
   // Skills Handlers

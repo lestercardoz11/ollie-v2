@@ -1,5 +1,5 @@
 import ApplicationPackageView from '@/components/application-package';
-import { db } from '@/services/db-server';
+import { db } from '@/services/server-client/db';
 import { redirect } from 'next/navigation';
 
 export default async function ApplicationPackagePage({

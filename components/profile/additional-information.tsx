@@ -39,9 +39,10 @@ export const AdditionalInformation = ({
         ) : (
           <p className='text-xs text-slate-700 leading-relaxed whitespace-pre-wrap'>
             {profile.additional_info || (
-              <span className='text-slate-400 italic'>
-                No additional information provided.
-              </span>
+              <div className='text-center py-6 bg-slate-50 rounded-lg border border-dashed border-slate-200'>
+                <Info className='mx-auto h-5 w-5 text-slate-300 mb-1' />
+                <p className='text-slate-500 text-[10px]'>No education yet.</p>
+              </div>
             )}
           </p>
         )}
