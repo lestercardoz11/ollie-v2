@@ -114,7 +114,7 @@ export const Experience = ({
                         onChange={(e) =>
                           updateExperience(idx, 'startDate', e.target.value)
                         }
-                        placeholder='YYYY-MM'
+                        placeholder='MM-YYYY'
                       />
                     </Field>
                     <Field>
@@ -148,15 +148,15 @@ export const Experience = ({
               <div className='pb-2'>
                 <div className='flex justify-between items-start'>
                   <div>
-                    <h4 className='text-sm font-bold text-slate-900'>
-                      {exp.role || 'Untitled Role'}
+                    <h4 className='text-sm uppercase font-bold text-slate-900'>
+                      {exp.role || '-'}
                     </h4>
                     <p className='text-xs font-medium text-slate-600'>
-                      {exp.company || 'Unknown Company'}
+                      {exp.company || '-'}
                     </p>
                   </div>
                   <span className='text-[10px] text-slate-500 font-mono whitespace-nowrap bg-slate-50 px-2 py-1 rounded'>
-                    {exp.startDate} - {exp.endDate}
+                    {exp.startDate || ''} - {exp.endDate || ''}
                   </span>
                 </div>
                 <div className='mt-2 text-xs text-slate-600 leading-relaxed whitespace-pre-line'>

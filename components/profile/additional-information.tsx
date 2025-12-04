@@ -37,14 +37,20 @@ export const AdditionalInformation = ({
             </p>
           </div>
         ) : (
-          <p className='text-xs text-slate-700 leading-relaxed whitespace-pre-wrap'>
-            {profile.additional_info || (
+          <>
+            {profile.additional_info && profile.additional_info != 'null' ? (
+              <p className='text-xs text-slate-700 leading-relaxed whitespace-pre-wrap'>
+                {profile.additional_info}
+              </p>
+            ) : (
               <div className='text-center py-6 bg-slate-50 rounded-lg border border-dashed border-slate-200'>
                 <Info className='mx-auto h-5 w-5 text-slate-300 mb-1' />
-                <p className='text-slate-500 text-[10px]'>No education yet.</p>
+                <p className='text-slate-500 text-[10px]'>
+                  No additional information yet.
+                </p>
               </div>
             )}
-          </p>
+          </>
         )}
       </CardContent>
     </Card>

@@ -57,7 +57,7 @@ export default function AppSidebar({
       <SidebarContent>
         <NavContent
           items={recentJobs.map((job) => ({
-            title: job.title,
+            title: job.company + ' - ' + job.title,
             url: `/application-package/${job.id}`,
           }))}>
           <SidebarGroupLabel>History</SidebarGroupLabel>

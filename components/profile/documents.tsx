@@ -4,22 +4,21 @@ import {
   FolderOpen,
   Loader2,
   Paperclip,
+  Repeat,
   Sparkles,
   X,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { SupportingDocument, UserProfile } from '@/types/db';
-import {
-  fileToBase64,
-  handleDragLeave,
-  handleDragOver,
-} from '../../utils/document';
+import { handleDragLeave, handleDragOver } from '../../utils/document';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { db } from '@/services/browser-client/db';
-import { parseSupportingDocWithGemini } from '@/services/gemini';
+import { reparseAllDocuments, uploadFileAndParse } from '@/utils/parser';
+import { Button } from '../ui/button';
+import { getDocumentLink } from '@/utils/file';
 
-const MAX_DOCS = 10;
+const MAX_DOCS = 5;
 
 interface ActiveUpload {
   id: string;
@@ -28,14 +27,16 @@ interface ActiveUpload {
   status: string;
 }
 
-export const SupportingDocuments = ({
-  supportingDocuments,
+export const Documents = ({
+  profile,
   setProfile,
   setLastSavedProfile,
+  supportingDocuments,
 }: {
-  supportingDocuments: SupportingDocument[];
+  profile: UserProfile;
   setProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
   setLastSavedProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
+  supportingDocuments: SupportingDocument[];
 }) => {
   // Drag states
   const [isDocDragOver, setIsDocDragOver] = useState(false);
@@ -45,156 +46,6 @@ export const SupportingDocuments = ({
 
   // Upload Progress State - Multiple files
   const [activeUploads, setActiveUploads] = useState<ActiveUpload[]>([]);
-
-  // ------------------- Supporting Doc Handlers -------------------
-
-  const uploadFile = async (file: File) => {
-    const uploadId = Math.random().toString(36).substring(7);
-
-    // Add to active uploads
-    setActiveUploads((prev) => [
-      ...prev,
-      {
-        id: uploadId,
-        fileName: file.name,
-        progress: 0,
-        status: 'Uploading...',
-      },
-    ]);
-
-    // Simulate progress
-    const progressInterval = setInterval(() => {
-      setActiveUploads((prev) =>
-        prev.map((u) => {
-          if (u.id !== uploadId || u.progress >= 70) return u;
-          return { ...u, progress: u.progress + Math.random() * 10 };
-        })
-      );
-    }, 200);
-
-    try {
-      // 1. Upload to DB
-      const newDoc = await db.uploadDocument(file);
-      setDocuments((prev) => [newDoc, ...prev]);
-
-      // Update progress for Analysis phase
-      setActiveUploads((prev) =>
-        prev.map((u) =>
-          u.id === uploadId
-            ? { ...u, progress: 75, status: 'Analyzing content...' }
-            : u
-        )
-      );
-      clearInterval(progressInterval);
-
-      // 2. Analyze with Gemini for Enrichment
-      // Supported types: PDF, Text, Images (common for certs)
-      const supportedTypes = [
-        'application/pdf',
-        'text/plain',
-        'image/jpeg',
-        'image/png',
-        'image/webp',
-      ];
-
-      if (supportedTypes.includes(file.type)) {
-        const base64 = await fileToBase64(file);
-        const extracted = await parseSupportingDocWithGemini(base64, file.type);
-
-        const newTech = extracted?.skills?.technical || [];
-        const newSoft = extracted?.skills?.soft || [];
-        const newKeys = extracted?.skills?.keywords || [];
-        const newEdu = extracted?.education || [];
-
-        const totalNewSkills = newTech.length + newSoft.length + newKeys.length;
-
-        if (totalNewSkills > 0 || newEdu.length > 0) {
-          setProfile((prev) => {
-            // Merge logic
-            // const updatedSkills: SkillCategories = {
-            //   technical: Array.from(
-            //     new Set([...prev.skills.technical, ...newTech])
-            //   ),
-            //   soft: Array.from(new Set([...prev.skills.soft, ...newSoft])),
-            //   keywords: Array.from(
-            //     new Set([...prev.skills.keywords, ...newKeys])
-            //   ),
-            // };
-
-            const existingSchools = new Set(
-              prev.education.map((e) => e.school.toLowerCase())
-            );
-            const uniqueNewEdu = newEdu.filter(
-              (e: { school: string }) =>
-                !existingSchools.has(e.school.toLowerCase())
-            );
-
-            const updatedProfile = {
-              ...prev,
-              // skills: updatedSkills,
-              education: [...prev.education, ...uniqueNewEdu],
-            };
-
-            // Trigger async save
-            db.saveProfile(updatedProfile).then(() =>
-              setLastSavedProfile(updatedProfile)
-            );
-            return updatedProfile;
-          });
-
-          // Update status with extraction result
-          setActiveUploads((prev) =>
-            prev.map((u) =>
-              u.id === uploadId
-                ? {
-                    ...u,
-                    progress: 100,
-                    status: `Added ${totalNewSkills} Skills, ${newEdu.length} Edu`,
-                  }
-                : u
-            )
-          );
-          toast.success(
-            `Extracted ${totalNewSkills} skills and ${newEdu.length} education entries from ${file.name}`
-          );
-        } else {
-          // Completed but nothing new found
-          setActiveUploads((prev) =>
-            prev.map((u) =>
-              u.id === uploadId
-                ? { ...u, progress: 100, status: 'Complete' }
-                : u
-            )
-          );
-        }
-      } else {
-        // Type not supported for analysis, just complete
-        setActiveUploads((prev) =>
-          prev.map((u) =>
-            u.id === uploadId ? { ...u, progress: 100, status: 'Complete' } : u
-          )
-        );
-      }
-
-      // Remove from active list after delay
-      setTimeout(() => {
-        setActiveUploads((prev) => prev.filter((u) => u.id !== uploadId));
-      }, 4000);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        toast.error(
-          `Upload failed for ${file.name}: ${error.message || 'Unknown error'}`
-        );
-      } else {
-        console.error(error);
-        toast.error(
-          `Upload failed for ${file.name}: ${error || 'Unknown error'}`
-        );
-      }
-      clearInterval(progressInterval);
-      setActiveUploads((prev) => prev.filter((u) => u.id !== uploadId));
-    }
-  };
 
   const handleFiles = (files: FileList) => {
     const remaining = MAX_DOCS - (documents.length + activeUploads.length);
@@ -210,9 +61,31 @@ export const SupportingDocuments = ({
           remaining === 1 ? '' : 's'
         }.`
       );
-      filesToUpload.slice(0, remaining).forEach((file) => uploadFile(file));
+      filesToUpload
+        .slice(0, remaining)
+        .forEach((file) =>
+          uploadFileAndParse(
+            file,
+            documents,
+            setDocuments,
+            profile,
+            setProfile,
+            setLastSavedProfile,
+            setActiveUploads
+          )
+        );
     } else {
-      filesToUpload.forEach((file) => uploadFile(file));
+      filesToUpload.forEach((file) =>
+        uploadFileAndParse(
+          file,
+          documents,
+          setDocuments,
+          profile,
+          setProfile,
+          setLastSavedProfile,
+          setActiveUploads
+        )
+      );
     }
   };
 
@@ -245,13 +118,29 @@ export const SupportingDocuments = ({
 
   return (
     <Card className='py-0 gap-2 overflow-hidden border-slate-200 shadow-sm'>
-      <CardHeader className='bg-slate-50 border-b border-slate-100 px-4 py-2.5 [.border-b]:pb-2.5 gap-y-0'>
+      <CardHeader className='flex justify-between items-center bg-slate-50 border-b border-slate-100 px-4 py-2.5 [.border-b]:pb-2.5 gap-y-0'>
         <div className='flex items-center gap-2'>
           <FolderOpen size={14} className='text-slate-500' />
           <CardTitle className='text-xs'>
-            Supporting Docs ({documents.length}/{MAX_DOCS})
+            Documents ({documents.length}/{MAX_DOCS})
           </CardTitle>
         </div>
+        <Button
+          size={'icon-sm'}
+          variant={'ghost'}
+          className='rounded-full'
+          onClick={() =>
+            reparseAllDocuments(
+              documents,
+              profile,
+              setProfile,
+              setLastSavedProfile,
+              '',
+              setActiveUploads
+            )
+          }>
+          <Repeat />
+        </Button>
       </CardHeader>
       <CardContent className='px-4 pt-4 pb-4'>
         <label
@@ -291,10 +180,10 @@ export const SupportingDocuments = ({
               {documents.length >= MAX_DOCS ? (
                 <span className='text-red-500'>Limit Reached</span>
               ) : (
-                <>
+                <div className='w-1/2 mx-auto'>
                   <span className='text-blue-600 hover:underline'>Upload</span>{' '}
-                  docs
-                </>
+                  documents to auto-fill your profile, or drag & drop here.
+                </div>
               )}
             </div>
           </div>
@@ -309,13 +198,13 @@ export const SupportingDocuments = ({
             return (
               <div
                 key={upload.id}
-                className='p-2 bg-white rounded-md border border-slate-100 shadow-sm relative overflow-hidden'>
+                className='relative overflow-hidden p-1.5 bg-slate-50 rounded border border-slate-100 group'>
                 <div className='flex justify-between items-center text-[10px] mb-1.5 font-medium'>
                   <div className='flex items-center gap-1.5 truncate max-w-[70%]'>
                     {isAnalyzing ? (
                       <Sparkles
                         size={10}
-                        className='text-purple-500 animate-pulse'
+                        className='text-blue-500 animate-pulse'
                       />
                     ) : isComplete ? (
                       <Check size={10} className='text-emerald-500' />
@@ -338,7 +227,7 @@ export const SupportingDocuments = ({
                   <div
                     className={`h-full transition-all duration-500 ease-out rounded-full ${
                       isAnalyzing
-                        ? 'bg-purple-500'
+                        ? 'bg-blue-500'
                         : isComplete
                         ? 'bg-emerald-500'
                         : 'bg-blue-500'
@@ -349,7 +238,7 @@ export const SupportingDocuments = ({
                 <p
                   className={`text-[9px] mt-1.5 font-medium ${
                     isAnalyzing
-                      ? 'text-purple-600'
+                      ? 'text-blue-500'
                       : isComplete
                       ? 'text-emerald-600'
                       : 'text-slate-500'
@@ -363,24 +252,24 @@ export const SupportingDocuments = ({
 
         {/* Document List */}
         <div className='space-y-1.5 max-h-[150px] overflow-y-auto custom-scrollbar'>
-          {documents.map((doc) => (
+          {documents.map((upload) => (
             <div
-              key={doc.id}
+              key={upload.id}
               className='flex items-center justify-between p-1.5 bg-slate-50 rounded border border-slate-100 group hover:border-blue-200 transition-all'>
               <div className='flex items-center gap-2 overflow-hidden'>
                 <div className='h-5 w-5 rounded bg-white border border-slate-200 flex items-center justify-center shrink-0'>
                   <Paperclip size={10} className='text-slate-400' />
                 </div>
                 <a
-                  href={doc.file_url}
+                  href={getDocumentLink(upload.file_url)}
                   target='_blank'
                   rel='noopener noreferrer'
-                  className='text-[10px] text-slate-700 truncate hover:text-blue-600 font-medium hover:underline max-w-[120px]'>
-                  {doc.name}
+                  className='text-[10px] text-slate-700 truncate hover:text-blue-600 font-medium hover:underline'>
+                  {upload.name}
                 </a>
               </div>
               <button
-                onClick={() => handleDeleteDoc(doc.id)}
+                onClick={() => handleDeleteDoc(upload.id)}
                 className='text-slate-400 hover:text-red-500 p-0.5 rounded hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100'
                 title='Delete Document'>
                 <X size={10} />

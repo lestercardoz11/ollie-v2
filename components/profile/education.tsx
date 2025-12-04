@@ -114,7 +114,7 @@ export const Education = ({
                   <p className='text-xs text-slate-600'>{edu.degree}</p>
                 </div>
                 <span className='text-[10px] text-slate-500 font-mono bg-slate-50 px-2 py-1 rounded'>
-                  {edu.year}
+                  {edu.year || ''}
                 </span>
               </div>
             )}

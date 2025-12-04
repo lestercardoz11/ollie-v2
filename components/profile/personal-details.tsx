@@ -21,7 +21,7 @@ export const PersonalDetails = ({
           <CardTitle className='text-xs'>Personal Details</CardTitle>
         </div>
       </CardHeader>
-      <CardContent className='grid grid-cols-1 md:grid-cols-2 space-y-4 p-4'>
+      <CardContent className='grid grid-cols-1 md:grid-cols-2 gap-4 p-4'>
         <DetailField
           field='full_name'
           label='Full Name'

@@ -1,43 +1,37 @@
 import { WritingTone } from '@/types/ai';
 import { UserProfile, JobDescription } from '../types/db';
 
-// --- RESUME PARSER ---
-export const SYSTEM_RESUME_PARSER = `You are a highly detailed and strict data extraction assistant. Your task is to extract all structured career and contact data from the provided resume into a strict JSON format.
+export const SYSTEM_UNIVERSAL_PARSER = `
+You are an expert Career Data Architect. Your task is to analyze the provided document and update a candidate's career profile.
 
-CRITICAL INSTRUCTIONS:
-1. **Source of Truth**: Only extract information explicitly present in the document. DO NOT make assumptions or hallucinate.
-2. **Contact Info**: Extract all contact details (email, phone, location, links).
-3. **Data Quality**:
-    - **Conciseness**: Summarize job and achievement descriptions into concise, action-oriented bullet points (max 3-4 bullets per entry).
-    - **Length Limits**: 'description' fields under 500 characters; 'summary' under 400 characters.
-    - **Dates**: Standardize dates to YYYY-MM format or use the string "Present" if ongoing.
-4. **Skills Categorization**:
-    - **Technical**: Hard skills, tools, languages, frameworks (e.g., React, Python, AWS, Azure).
-    - **Soft**: Interpersonal skills, leadership, communication, problem-solving.
-    - **Keywords**: Industry buzzwords, specific methodologies, or job titles (e.g., Agile, SEO, CI/CD, Scrum Master).
-5. **Schema**: Strictly follow the requested JSON structure.
+INPUTS:
+1. A Document (PDF/Text/Image) which could be a Resume, CV, Transcript, Certificate, or Project Portfolio.
+2. Existing Profile Data (JSON) provided in the prompt context.
 
-Extract the following fields:
-- Full Name
-- Email, Phone, Location
-- LinkedIn, Portfolio (URLs)
-- Professional Summary
-- Skills (Object with 'technical', 'soft', 'keywords' arrays of strings)
-- Work Experience (company, role, startDate, endDate, description)
-- Education (school, degree, year)
-- Achievements (Distinct awards or major accomplishments listed separately)
-`;
+YOUR GOAL:
+Return a single, consolidated JSON object representing the candidate's updated profile. The information must be accurate, non-duplicative, well-formatted, and well-structured.
 
-// --- SUPPORTING DOCUMENT PARSER ---
-export const SYSTEM_SUPPORTING_DOC_PARSER = `You are a specialized career data extraction assistant. Analyze the provided supporting document (e.g., certification, transcript, letter of recommendation, portfolio description). 
+MERGING RULES:
+1. **Identify Document Type**:
+   - If the document is a **Resume/CV**: It is the "Source of Truth". Overwrite "Scalar" fields (Full Name, Contact Info, Summary) with data from this document. Replace the lists (Experience, Education) *unless* the existing data contains specific details not present in the new resume that look valuable.
+   - If the document is a **Supporting Doc** (i.e. Any other document apart from a Resume/CV): Do NOT overwrite the name/contact info. ONLY EXTRACT and APPEND new Skills, Education, Achievements or Experience entries. Be sure to extract additional information that may give context to build a better job specified Resume/Cover Letter later.
 
-Task: Extract all relevant career data, specifically focusing on skills, education, and any explicit work experience/roles described.
+2. **Smart Deduplication**:
+   - When appending Skills: Normalize content (e.g., "ReactJS" == "React"). Do not add duplicates.
+   - When appending Experience/Education: Check if the entry already exists (matching Company/School and Dates). If it exists, merge any new details; if not, add it as a new entry.
 
-CRITICAL INSTRUCTIONS:
-1. **Focus**: Extract only the 'skills', 'education', and 'experience' objects.
-2. **Skills Categorization**: Categorize all identified skills into 'technical', 'soft', or 'keywords'.
-3. **Experience**: If the document contains descriptions of roles, projects, or professional duties, extract them as 'experience' objects. Use bullet points for descriptions.
-4. **Schema**: Return a JSON object with 'skills' (Object with technical, soft, keywords arrays), 'education' (array of objects), and 'experience' (array of objects). Ignore all other fields.
+3. **Data Cleaning**:
+   - Standardize dates to "MM-YYYY" or "Present".
+   - Categorize all skills e.g. Technical, Soft, Leadership, etc.
+   - Ensure all text fields are free of typos, well capitalized sentences and formatted consistently.
+
+4. **Other Guidelines**:
+   - Retain any unique details from the existing profile that are not contradicted by the new document.
+   - Key Achievements should include any achievements and any certifications
+   - Addtional Information must include any relevant context for job applications/cover letters that are not included in Skills, Education, Achievements or Experience.
+   
+OUTPUT SCHEMA:
+Strictly follow the JSON structure provided.
 `;
 
 // --- APPLICATION GENERATION PROMPT ---
@@ -65,8 +59,8 @@ JOB DESCRIPTION:
 ${job.raw_text}
 
 Requirements:
-1. tailored_cv_data: Generate the structured JSON data for the Tailored CV. This includes a revised summary, and tailored lists of experience, education, achievements, and skills. All descriptions and bullets must be rewritten to match the job description's keywords and needs.
-2. cover_letter_markdown: Write a compelling, enthusiastic, and professional cover letter connecting the candidate's past achievements to the company's needs. Use Markdown format. The tone should be ${tone}.
+1. tailored_cv_data: Generate the structured JSON data for the Tailored CV. This includes a revised summary, and tailored lists of experience, education, achievements, and skills. All descriptions and bullets must be rewritten to match the job description's keywords and needs. The descriptions should be concise, achievement-focused, and quantified where possible.
+2. cover_letter_markdown: Write a compelling, enthusiastic, and professional cover letter connecting the candidate's past achievements to the company's needs. Use Markdown format. It should be well formatted with spaces and new lines. The tone should be ${tone}.
 3. qa_responses: Identify 3 likely behavioral or technical screening questions based on the JD and provide strong, STAR-method answers based on the profile.
 
 Output as JSON.

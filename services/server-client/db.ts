@@ -35,7 +35,8 @@ export const db = {
     } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    // Payload maps directly to snake_case DB fields
+    const skills = await db.saveSkills(profile.skills || []);
+
     const payload = {
       user_id: user.id,
       full_name: profile.full_name,
@@ -43,11 +44,13 @@ export const db = {
       phone: profile.phone,
       location: profile.location,
       summary: profile.summary,
-      resume_url: profile.resume_url,
-      profile_picture_url: profile.profile_picture_url,
       additional_info: profile.additional_info,
       linkedin: profile.linkedin,
       portfolio: profile.portfolio,
+      experience: profile.experience || [],
+      education: profile.education || [],
+      achievements: profile.achievements || [],
+      skills: skills,
     };
 
     const { data, error } = await supabase
@@ -80,6 +83,8 @@ export const db = {
     }
     if (!data) return null;
 
+    data.skills = (await db.getSkillsByIds(data.skills)) || [];
+
     // Direct mapping to UserProfile interface (fields are already snake_case)
     return data as UserProfile;
   },
@@ -96,6 +101,28 @@ export const db = {
       return [];
     }
     return data as Skill[];
+  },
+
+  saveSkills: async (skills: Skill[]): Promise<string[]> => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const { data, error } = await supabase
+      .from('skills')
+      .upsert(skills, { onConflict: 'name' })
+      .select('*');
+
+    if (error) {
+      console.error('Error saving skills:', error);
+      throw error;
+    }
+    console.log('Saved skills:', data);
+    if (!data) return [];
+
+    return (data as Skill[]).map((s) => s.id);
   },
 
   getSkillsByIds: async (skillIds: string[]): Promise<Skill[]> => {

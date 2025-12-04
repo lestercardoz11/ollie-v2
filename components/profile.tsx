@@ -3,13 +3,12 @@
 import { useState, useMemo } from 'react';
 import { Save, Pencil, Ban } from 'lucide-react';
 import { db } from '../services/browser-client/db';
-import { UserProfile, SupportingDocument, Skill } from '../types/db';
+import { UserProfile, SupportingDocument } from '../types/db';
 import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Spinner } from './ui/spinner';
 import { MainContainer } from './custom/main-container';
-import { ResumeImport } from './profile/resume-import';
-import { SupportingDocuments } from './profile/supporting-documents';
+import { Documents } from './profile/documents';
 import { PersonalDetails } from './profile/personal-details';
 import { Skills } from './profile/skills';
 import { Education } from './profile/education';
@@ -21,13 +20,11 @@ import { AdditionalInformation } from './profile/additional-information';
 interface ProfileViewProps {
   userProfile: UserProfile | null;
   documents: SupportingDocument[];
-  skills: Skill[];
 }
 
 export default function ProfileView({
   userProfile,
   documents,
-  skills,
 }: ProfileViewProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -40,7 +37,6 @@ export default function ProfileView({
     phone: userProfile?.phone || '',
     location: userProfile?.location || null,
     summary: userProfile?.summary || null,
-    resume_url: userProfile?.resume_url || null,
     profile_picture_url: userProfile?.profile_picture_url || null,
     additional_info: userProfile?.additional_info || null,
     linkedin: userProfile?.linkedin || null,
@@ -132,17 +128,12 @@ export default function ProfileView({
       {/* Main Content Grid (No changes needed in component props as the `profile` object structure is locally corrected) */}
       <div className='grid grid-cols-1 lg:grid-cols-12 gap-5'>
         <div className='lg:col-span-4 space-y-4'>
-          {/* Resume Import Card */}
-          <ResumeImport
+          {/* Supporting Documents Section */}
+          <Documents
             profile={profile}
             setProfile={setProfile}
             setLastSavedProfile={setLastSavedProfile}
-          />
-          {/* Supporting Documents Section */}
-          <SupportingDocuments
             supportingDocuments={documents}
-            setProfile={setProfile}
-            setLastSavedProfile={setLastSavedProfile}
           />
 
           {/* Skills Card - Categorized */}
@@ -150,7 +141,6 @@ export default function ProfileView({
             profile={profile}
             setProfile={setProfile}
             isEditing={isEditing}
-            skills={skills}
           />
 
           {/* Additional Information */}

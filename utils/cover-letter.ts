@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, PDFFont } from 'pdf-lib';
+import { PDFDocument, StandardFonts, PDFFont, RGB, rgb } from 'pdf-lib';
 import download from 'downloadjs';
 
 // --- Layout Constants ---
@@ -10,6 +10,15 @@ const LINE_HEIGHT_BODY = 14.5;
 const SPACING_AFTER_PARAGRAPH = 10;
 const BULLET_INDENT = 18;
 const BULLET_TEXT_INDENT = 28;
+
+interface DrawConfig {
+  width: number;
+  height: number;
+  margin: number;
+  lineHeight: number;
+  primaryColor: RGB;
+  textColor: RGB;
+}
 
 /**
  * Helper to split text into lines that fit within a specific width
@@ -52,6 +61,15 @@ export const generateCoverLetterPDF = async (
   let page = pdfDoc.addPage();
   const { width, height } = page.getSize();
 
+  const config: DrawConfig = {
+    width,
+    height,
+    margin: PAGE_MARGIN,
+    lineHeight: 14,
+    primaryColor: rgb(0.16, 0.35, 0.61),
+    textColor: rgb(0, 0, 0),
+  };
+
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
@@ -64,6 +82,20 @@ export const generateCoverLetterPDF = async (
       currentY = height - PAGE_MARGIN;
     }
   };
+
+  // Helper function to draw blue line
+  const drawBlueLine = (y: number): void => {
+    page.drawLine({
+      start: { x: config.margin, y },
+      end: { x: config.width - config.margin, y },
+      thickness: 3,
+      color: config.primaryColor,
+    });
+  };
+
+  // Draw blue line at top
+  drawBlueLine(currentY + 10);
+  currentY -= 24;
 
   const lines = markdownContent.split('\n');
 

@@ -1,4 +1,10 @@
-import { GeneratedProfile } from '@/types/db';
+import {
+  Achievement,
+  Education,
+  TailoredCV,
+  UserProfile,
+  WorkExperience,
+} from '@/types/db';
 import download from 'downloadjs';
 import {
   PDFDocument,
@@ -8,6 +14,7 @@ import {
   RGB,
   StandardFonts,
 } from 'pdf-lib';
+import { convertToBulletPoints } from './string';
 
 interface PageContext {
   page: PDFPage;
@@ -29,7 +36,8 @@ interface DrawConfig {
 }
 
 export async function generateResumePDF(
-  profile: GeneratedProfile
+  profile: UserProfile,
+  tailored_cv: TailoredCV
 ): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
   const currentPage = pdfDoc.addPage([595.28, 841.89]); // A4 size
@@ -60,16 +68,6 @@ export async function generateResumePDF(
       context.page = pdfDoc.addPage([595.28, 841.89]);
       context.yPosition = config.height - 60;
     }
-  };
-
-  // Helper function to draw blue line
-  const drawBlueLine = (y: number): void => {
-    context.page.drawLine({
-      start: { x: config.margin, y },
-      end: { x: config.width - config.margin, y },
-      thickness: 3,
-      color: config.primaryColor,
-    });
   };
 
   // Helper function to wrap text
@@ -140,18 +138,30 @@ export async function generateResumePDF(
     });
   };
 
+  // Helper function to draw blue line
+  const drawBlueLine = (y: number): void => {
+    context.page.drawLine({
+      start: { x: config.margin, y },
+      end: { x: config.width - config.margin, y },
+      thickness: 3,
+      color: config.primaryColor,
+    });
+  };
+
   // Draw blue line at top
   drawBlueLine(context.yPosition + 10);
-  context.yPosition -= 20;
+  context.yPosition -= 24;
 
   // Name
-  drawText(profile.fullName, 32, fonts.helveticaBold);
-  context.yPosition -= 40;
+  drawText(profile.full_name, 32, fonts.helveticaBold);
+  context.yPosition -= 20;
 
   // Job Title
-  const jobTitle = profile.experience[0]?.role || 'Professional';
-  drawText(jobTitle, 18, fonts.helvetica, config.primaryColor);
-  context.yPosition -= 25;
+  if (tailored_cv.experience && tailored_cv.experience.length > 0) {
+    const jobTitle = tailored_cv.experience[0]?.role || '';
+    drawText(jobTitle, 18, fonts.helvetica, config.primaryColor);
+    context.yPosition -= 20;
+  }
 
   // Contact Information
   const contactInfo = [
@@ -166,7 +176,7 @@ export async function generateResumePDF(
     context.yPosition -= config.lineHeight;
   });
 
-  context.yPosition -= 10;
+  context.yPosition -= 20;
 
   // Professional Summary
   drawText(
@@ -176,130 +186,141 @@ export async function generateResumePDF(
     config.primaryColor
   );
   context.yPosition -= 20;
-  drawWrappedText(profile.summary, 10, fonts.helvetica);
+  drawWrappedText(tailored_cv.summary || '', 10, fonts.helvetica);
   context.yPosition -= 15;
 
   // Technical Skills
-  drawText('TECHNICAL SKILLS', 14, fonts.helveticaBold, config.primaryColor);
+  drawText('SKILLS', 14, fonts.helveticaBold, config.primaryColor);
   context.yPosition -= 20;
 
-  // Leadership skills
-  if (profile.skills.soft.length > 0) {
-    const leadershipText = `Leadership: ${profile.skills.soft.join(', ')}`;
-    drawWrappedText(leadershipText, 10, fonts.helvetica);
-  }
-
   // Technical skills
-  if (profile.skills.technical.length > 0) {
-    const techText = `Technologies: ${profile.skills.technical.join(', ')}`;
-    drawWrappedText(techText, 10, fonts.helvetica);
-  }
+  if (tailored_cv.skills && tailored_cv.skills.length > 0) {
+    if (tailored_cv.skills && tailored_cv.skills.length > 0) {
+      const skillsByCategory = tailored_cv.skills.reduce((acc, skill) => {
+        const cat = skill.category || 'General';
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(skill.name);
+        return acc;
+      }, {} as Record<string, string[]>);
 
-  // Keywords
-  if (profile.skills.keywords.length > 0) {
-    const keywordsText = `Keywords: ${profile.skills.keywords.join(', ')}`;
-    drawWrappedText(keywordsText, 10, fonts.helvetica);
+      Object.entries(skillsByCategory).forEach(([category, skills]) => {
+        const categoryText = `${category}:`;
+        drawWrappedText(categoryText, 10, fonts.helveticaBold);
+        const techText = ` ${skills.join(', ')}`;
+        drawWrappedText(techText, 10, fonts.helvetica);
+        context.yPosition -= 5;
+      });
+    }
   }
 
   context.yPosition -= 15;
 
-  // Professional Experience
-  drawText(
-    'PROFESSIONAL EXPERIENCE',
-    14,
-    fonts.helveticaBold,
-    config.primaryColor
-  );
-  context.yPosition -= 20;
-
-  profile.experience.forEach((exp) => {
-    ensureSpace(100);
-
-    // Company name and dates
-    const dateRange = `(${exp.startDate} - ${exp.endDate})`;
+  if (tailored_cv.experience && tailored_cv.experience.length > 0) {
+    // Professional Experience
     drawText(
-      `${exp.company}, ${profile.location} ${dateRange}`,
-      11,
-      fonts.helveticaBold
+      'PROFESSIONAL EXPERIENCE',
+      14,
+      fonts.helveticaBold,
+      config.primaryColor
     );
-    context.yPosition -= 18;
+    context.yPosition -= 20;
+    tailored_cv.experience.forEach((exp: WorkExperience) => {
+      ensureSpace(100);
 
-    // Role
-    drawText(exp.role.toUpperCase(), 10, fonts.helvetica);
-    context.yPosition -= 16;
+      // Company name and dates
+      const dateRange = `(${exp.startDate} - ${exp.endDate})`;
+      drawText(
+        `${exp.company}, ${profile.location} ${dateRange}`,
+        11,
+        fonts.helveticaBold
+      );
+      context.yPosition -= 18;
 
-    // Description - split by bullet points or newlines
-    const descriptionPoints = exp.description
-      .split('\n')
-      .filter((d) => d.trim());
-    descriptionPoints.forEach((point) => {
-      const cleanPoint = point.replace(/^[•-]\s*/, '').trim();
-      if (cleanPoint) {
-        const bulletLines = wrapText(
-          cleanPoint,
-          config.width - 2 * config.margin - 20,
-          fonts.helvetica,
-          10
-        );
+      // Role
+      drawText(exp.role.toUpperCase(), 10, fonts.helvetica);
+      context.yPosition -= 16;
 
-        bulletLines.forEach((line, idx) => {
-          ensureSpace(50);
+      // Description - split by bullet points or newlines
+      const descriptionPoints = (
+        convertToBulletPoints(exp.description) as string
+      )
+        .split('\n')
+        .filter((d) => d.trim());
+      descriptionPoints.forEach((point: string) => {
+        const cleanPoint = point.replace(/^[•-]\s*/, '').trim();
+        if (cleanPoint) {
+          const bulletLines = wrapText(
+            cleanPoint,
+            config.width - 2 * config.margin - 20,
+            fonts.helvetica,
+            10
+          );
 
-          if (idx === 0) {
-            context.page.drawText('•', {
-              x: config.margin + 10,
+          bulletLines.forEach((line, idx) => {
+            ensureSpace(50);
+
+            if (idx === 0) {
+              context.page.drawText('•', {
+                x: config.margin + 10,
+                y: context.yPosition,
+                size: 8,
+                font: fonts.helvetica,
+                color: config.textColor,
+              });
+            }
+
+            context.page.drawText(line, {
+              x: config.margin + 25,
               y: context.yPosition,
-              size: 8,
+              size: 10,
               font: fonts.helvetica,
               color: config.textColor,
             });
-          }
-
-          context.page.drawText(line, {
-            x: config.margin + 25,
-            y: context.yPosition,
-            size: 10,
-            font: fonts.helvetica,
-            color: config.textColor,
+            context.yPosition -= config.lineHeight;
           });
-          context.yPosition -= config.lineHeight;
-        });
-      }
-    });
+        }
+      });
 
-    context.yPosition -= 10;
-  });
+      context.yPosition -= 10;
+    });
+    context.yPosition -= 15;
+  }
 
   // Education
-  if (profile.education.length > 0) {
+  if (tailored_cv.education && tailored_cv.education.length > 0) {
     ensureSpace(150);
 
     drawText('EDUCATION', 14, fonts.helveticaBold, config.primaryColor);
     context.yPosition -= 20;
 
-    profile.education.forEach((edu) => {
+    tailored_cv.education.forEach((edu: Education) => {
       drawText(`${edu.school} (${edu.year})`, 11, fonts.helveticaBold);
       context.yPosition -= 16;
 
       drawText(`- ${edu.degree}`, 10, fonts.helvetica, config.textColor, 10);
       context.yPosition -= 20;
     });
+    context.yPosition -= 15;
   }
 
   // Certifications/Achievements
-  if (profile.achievements.length > 0) {
+  if (tailored_cv.achievements && tailored_cv.achievements.length > 0) {
     ensureSpace(100);
 
-    drawText('CERTIFICATIONS', 14, fonts.helveticaBold, config.primaryColor);
+    drawText(
+      'CERTIFICATIONS / ACHIEVEMENTS',
+      14,
+      fonts.helveticaBold,
+      config.primaryColor
+    );
     context.yPosition -= 20;
 
-    profile.achievements.forEach((achievement) => {
+    tailored_cv.achievements.forEach((achievement: Achievement) => {
       drawText(
         `•  ${achievement.title}`,
         10,
         fonts.helvetica,
-        config.textColor,
-        10
+        config.textColor
       );
       context.yPosition -= config.lineHeight;
     });
@@ -310,9 +331,10 @@ export async function generateResumePDF(
 }
 
 export async function downloadResume(
-  profile: GeneratedProfile,
+  profile: UserProfile,
+  tailored_cv: TailoredCV,
   fileName: string = 'resume.pdf'
 ) {
-  const pdfBytes = await generateResumePDF(profile);
+  const pdfBytes = await generateResumePDF(profile, tailored_cv);
   download(pdfBytes, fileName, 'application/pdf');
 }

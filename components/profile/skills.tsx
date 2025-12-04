@@ -1,104 +1,117 @@
 'use client';
 
 import {
+  ChevronsUpDown,
+  Code,
   Cpu,
   Lightbulb,
-  MessageCircle,
-  Plus,
-  Tag,
+  LucideIcon,
+  MessageSquare,
+  Target,
+  TrendingUp,
+  Users,
   XCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Input } from '../ui/input';
-import { Skill, SkillCategory, UserProfile } from '@/types/db';
+import { Skill, UserProfile } from '@/types/db';
 import { Button } from '../ui/button';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Field, FieldGroup, FieldSet } from '../ui/field';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
-
-// Redefine SkillCategories to group the flat array for rendering
-type CategorizedSkills = {
-  technical: string[];
-  soft: string[];
-  keywords: string[];
-};
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '../ui/command';
+import { db } from '@/services/browser-client/db';
 
 export const Skills = ({
   profile,
   setProfile,
   isEditing,
-  skills,
 }: {
   profile: UserProfile;
   setProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
   isEditing: boolean;
-  skills: Skill[];
 }) => {
-  // Skills Input State
-  const [skillInput, setSkillInput] = useState('');
-  const [selectedSkillCategory, setSelectedSkillCategory] =
-    useState<SkillCategory>('technical');
+  const [open, setOpen] = useState(false);
+  const [allSkills, setAllSkills] = useState<Skill[]>([]);
 
-  const categorizedSkills: CategorizedSkills = {
-    technical: skills
-      .filter((s) => s.category === 'technical')
-      .map((s) => s.name),
-    soft: skills.filter((s) => s.category === 'soft').map((s) => s.name),
-    keywords: skills
-      .filter((s) => s.category === 'keywords')
-      .map((s) => s.name),
+  useEffect(() => {
+    async function fetchData() {
+      const fetchedSkills = await db.getSkills();
+      setAllSkills(
+        fetchedSkills.filter(
+          (s) => !profile.skills.some((userSkill) => userSkill.id === s.id)
+        )
+      );
+    }
+    fetchData();
+  }, [isEditing, profile.skills]);
+
+  const ICON_MAP: LucideIcon[] = [
+    Cpu,
+    Users,
+    TrendingUp,
+    MessageSquare,
+    Target,
+    Code,
+  ];
+
+  const COLOR_MAP: string[] = [
+    'text-blue-500',
+    'text-emerald-500',
+    'text-purple-500',
+    'text-pink-500',
+    'text-teal-500',
+    'text-orange-500',
+  ];
+
+  const IconRenderer = ({ iconKey }: { iconKey: number }) => {
+    const inputKey = Math.floor(iconKey);
+    const totalIcons = ICON_MAP.length;
+
+    const index = inputKey % totalIcons;
+
+    if (inputKey < 0) {
+      return <XCircle size={12} className='text-red-500' />;
+    }
+
+    // Get the Icon component from the map
+    const IconComponent = ICON_MAP[index];
+
+    // Render the selected Icon component
+    return <IconComponent size={12} className={COLOR_MAP[index]} />;
   };
 
   // Skills Handlers
-  const handleAddSkill = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    const skillName = skillInput.trim();
-    if (!skillName) return;
+  const handleAddSkill = (value: string) => {
+    const exists = profile.skills.some((s) => s.id.toLowerCase() === value);
 
-    const category = selectedSkillCategory;
-
-    const exists = profile.skills.some(
-      (s) => s.toLowerCase() === skillName.toLowerCase()
-    );
     if (exists) {
-      setSkillInput('');
-      toast.info(`Skill "${skillName}" already exists!`);
+      toast.info(`Skill already exists!`);
       return;
     }
 
-    const newSkill: Skill = {
-      id: Date.now().toString(),
-      name: skillName,
-      category: category,
-    };
+    const found = allSkills.find((s) => s.id === value);
+    if (!found) return;
 
     setProfile((prev) => ({
       ...prev,
-      skills: [...prev.skills, newSkill.name],
+      skills: [...prev.skills, found],
     }));
-    setSkillInput('');
   };
 
-  const handleSkillKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAddSkill();
-    }
-  };
-
-  const handleRemoveSkill = (skillId: string) => {
+  const handleRemoveSkill = (value: string) => {
     if (!isEditing) return;
 
     setProfile((prev) => ({
       ...prev,
-      skills: prev.skills.filter((s) => s !== skillId),
+      skills: prev.skills.filter((s) => s.id !== value),
     }));
   };
 
@@ -116,34 +129,42 @@ export const Skills = ({
             <FieldSet>
               <FieldGroup>
                 <Field orientation={'horizontal'}>
-                  <Select
-                    value={selectedSkillCategory}
-                    onValueChange={(value: 'technical' | 'soft' | 'keywords') =>
-                      setSelectedSkillCategory(value)
-                    }>
-                    <SelectTrigger className='w-full'>
-                      <SelectValue placeholder='Category' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value='technical'>Technical</SelectItem>
-                      <SelectItem value='soft'>Soft Skills</SelectItem>
-                      <SelectItem value='keywords'>Keywords</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    id='skill'
-                    placeholder='Add Skills'
-                    value={skillInput}
-                    onChange={(e) => setSkillInput(e.target.value)}
-                    onKeyDown={handleSkillKeyDown}
-                    required
-                  />
-                  <Button
-                    onClick={() => handleAddSkill()}
-                    size='icon'
-                    variant={'ghost'}>
-                    <Plus className='h-4 w-4' />
-                  </Button>
+                  <Popover open={open} onOpenChange={setOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant='outline'
+                        role='combobox'
+                        aria-expanded={open}
+                        className='w-full justify-between'>
+                        {'Select skill'}
+                        <ChevronsUpDown className='opacity-50' />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className='p-0'>
+                      <Command>
+                        <CommandInput
+                          placeholder='Search skills'
+                          className='h-9'
+                        />
+                        <CommandList>
+                          <CommandEmpty>No skill found.</CommandEmpty>
+                          <CommandGroup>
+                            {allSkills.map((skill) => (
+                              <CommandItem
+                                key={skill.id}
+                                value={skill.id}
+                                onSelect={(currentValue) => {
+                                  handleAddSkill(currentValue);
+                                  setOpen(false);
+                                }}>
+                                {skill.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </Field>
               </FieldGroup>
             </FieldSet>
@@ -154,108 +175,50 @@ export const Skills = ({
         )}
 
         {/* Technical Skills */}
-        <div>
-          <div className='flex items-center gap-1.5 mb-2'>
-            <Cpu size={12} className='text-blue-500' />
-            <span className='text-[10px] font-bold text-slate-500 uppercase tracking-wide'>
-              Technical / Hard Skills
-            </span>
+        {profile.skills.length === 0 ? (
+          <div className='justify-center text-center py-6 bg-slate-50 rounded-lg border border-dashed border-slate-200'>
+            <Lightbulb
+              size={14}
+              className='mx-auto h-5 w-5 text-slate-300 mb-1'
+            />
+            <p className='text-slate-500 text-[10px]'>No skills added yet.</p>
           </div>
-          <div className='flex flex-wrap gap-1.5 content-start'>
-            {categorizedSkills.technical.length === 0 ? (
-              <span className='text-[10px] text-slate-400 italic'>
-                No technical skills.
-              </span>
-            ) : (
-              categorizedSkills.technical.map((skill, idx) => (
-                <div
-                  key={idx}
-                  className={`inline-flex items-center bg-white border border-blue-100 text-blue-700 rounded-full px-2 py-0.5 text-[10px] font-medium shadow-sm ${
-                    isEditing ? 'pr-1' : ''
-                  }`}>
-                  <span>{skill}</span>
-                  {isEditing && (
-                    <button
-                      onClick={() => handleRemoveSkill(skill)}
-                      className='ml-1 text-blue-300 hover:text-red-500'>
-                      <XCircle size={10} />
-                    </button>
-                  )}
+        ) : (
+          [...new Set(profile.skills.map((s) => s.category))].map(
+            (category, idx) => (
+              <div key={idx}>
+                <div className='flex items-center gap-1.5 mb-2'>
+                  {IconRenderer({ iconKey: idx })}
+                  <span className='text-[10px] font-bold text-slate-500 uppercase tracking-wide'>
+                    {category} {category.includes('skill') ? '' : 'Skills'}
+                  </span>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Soft Skills */}
-        <div>
-          <div className='flex items-center gap-1.5 mb-2'>
-            <MessageCircle size={12} className='text-emerald-500' />
-            <span className='text-[10px] font-bold text-slate-500 uppercase tracking-wide'>
-              Soft Skills
-            </span>
-          </div>
-          <div className='flex flex-wrap gap-1.5 content-start'>
-            {/* 🐛 FIX 5: Use categorizedSkills for rendering */}
-            {categorizedSkills.soft.length === 0 ? (
-              <span className='text-[10px] text-slate-400 italic'>
-                No soft skills.
-              </span>
-            ) : (
-              categorizedSkills.soft.map((skill, idx) => (
-                <div
-                  key={idx}
-                  className={`inline-flex items-center bg-white border border-emerald-100 text-emerald-700 rounded-full px-2 py-0.5 text-[10px] font-medium shadow-sm ${
-                    isEditing ? 'pr-1' : ''
-                  }`}>
-                  <span>{skill}</span>
-                  {isEditing && (
-                    <button
-                      onClick={() => handleRemoveSkill(skill)}
-                      className='ml-1 text-emerald-300 hover:text-red-500'>
-                      <XCircle size={10} />
-                    </button>
-                  )}
+                <div className='flex flex-wrap gap-1.5 content-start'>
+                  {profile.skills
+                    .filter((s) => s.category === category)
+                    .map((skill, keydx) => (
+                      <div
+                        key={keydx}
+                        className={`inline-flex items-center bg-white border border-blue-100 ${
+                          COLOR_MAP[idx]
+                        } rounded-full px-2 py-0.5 text-[10px] font-medium shadow-sm ${
+                          isEditing ? 'pr-1' : ''
+                        }`}>
+                        <span>{skill.name}</span>
+                        {isEditing && (
+                          <button
+                            onClick={() => handleRemoveSkill(skill.id)}
+                            className='ml-1 text-red-300 hover:text-red-600'>
+                            <XCircle size={10} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Keywords */}
-        <div>
-          <div className='flex items-center gap-1.5 mb-2'>
-            <Tag size={12} className='text-purple-500' />
-            <span className='text-[10px] font-bold text-slate-500 uppercase tracking-wide'>
-              Keywords / Industry
-            </span>
-          </div>
-          <div className='flex flex-wrap gap-1.5 content-start'>
-            {/* 🐛 FIX 5: Use categorizedSkills for rendering */}
-            {categorizedSkills.keywords.length === 0 ? (
-              <span className='text-[10px] text-slate-400 italic'>
-                No keywords.
-              </span>
-            ) : (
-              categorizedSkills.keywords.map((skill, idx) => (
-                <div
-                  key={idx}
-                  className={`inline-flex items-center bg-white border border-purple-100 text-purple-700 rounded-full px-2 py-0.5 text-[10px] font-medium shadow-sm ${
-                    isEditing ? 'pr-1' : ''
-                  }`}>
-                  <span>{skill}</span>
-                  {isEditing && (
-                    <button
-                      onClick={() => handleRemoveSkill(skill)}
-                      className='ml-1 text-purple-300 hover:text-red-500'>
-                      <XCircle size={10} />
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+              </div>
+            )
+          )
+        )}
       </CardContent>
     </Card>
   );

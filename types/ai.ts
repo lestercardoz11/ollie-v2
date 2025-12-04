@@ -1,4 +1,10 @@
-import { Achievement, Education, MessageRole, WorkExperience } from './db';
+import {
+  Achievement,
+  Education,
+  MessageRole,
+  Skill,
+  WorkExperience,
+} from './db';
 
 export type WritingTone =
   | 'professional'
@@ -24,12 +30,13 @@ export interface ChatMessage {
 export interface ParsedResumeData {
   full_name: string; // Updated to snake_case for consistency, though 'fullName' is still often used in prompt-based parsing
   summary: string;
-  skills: {
-    technical: string[];
-    soft: string[];
-    keywords: string[];
-  };
-  experience: WorkExperience[]; // Use Omit as Gemini doesn't generate the UUID
+  location: string;
+  phone: string;
+  linkedin: string;
+  portfolio: string;
+  additional_info: string;
+  skills: Skill[];
+  experience: WorkExperience[];
   education: Education[];
   achievements: Achievement[];
 }

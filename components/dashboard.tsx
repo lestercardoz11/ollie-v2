@@ -35,6 +35,7 @@ export default function DashboardView({
         .split(/\s+/)
         .filter((w) => w.length > 3);
 
+      // Check for relevant experience
       const hasRelevantExperience = userProfile.experience?.some((exp) => {
         const roleLower = exp.role.toLowerCase();
         return titleKeywords.some((k) => roleLower.includes(k));
@@ -42,10 +43,11 @@ export default function DashboardView({
 
       if (hasRelevantExperience) score += 25;
 
+      // Check for skill match
       const allSkills = userProfile.skills ? userProfile.skills : [];
       if (allSkills.length > 0) {
         const matchedSkills = allSkills.filter((skill) =>
-          jobTextLower.includes(skill.toLowerCase())
+          jobTextLower.includes(skill.name.toLowerCase())
         );
         score += Math.min(matchedSkills.length * 5, 60);
       }
@@ -113,7 +115,7 @@ export default function DashboardView({
       </div>
 
       {/* Stats Grid */}
-      <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+      <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4'>
         <StatCard
           icon={<FileText size={18} />}
           label='Applications'
@@ -138,15 +140,15 @@ export default function DashboardView({
       </div>
 
       {/* Recent Applications */}
-      <Card className='border-slate-200'>
+      <Card className='border border-slate-200'>
         <CardHeader className='px-5 py-3 border-b border-slate-100'>
-          <CardTitle className='text-sm'>Recent Activity</CardTitle>
+          <CardTitle className='text-base'>Recent Activity</CardTitle>
         </CardHeader>
-        <CardContent className='p-0'>
+        <CardContent className='p-0 divide-y divide-slate-100'>
           {jobs.length === 0 ? (
             <EmptyState />
           ) : (
-            <div className='divide-y divide-slate-50'>
+            <div>
               {jobsWithMetadata.map(
                 ({ job, hasApp, score, scoreColorClass }) => (
                   <JobRow
@@ -168,7 +170,7 @@ export default function DashboardView({
 }
 
 const EmptyState = React.memo(() => (
-  <div className='text-center py-12 text-slate-400 text-xs'>
+  <div className='text-center py-12 text-slate-400 text-sm'>
     {`No applications yet. Click "New Application" to start.`}
   </div>
 ));

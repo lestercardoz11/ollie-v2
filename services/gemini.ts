@@ -1,13 +1,14 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import {
-  SYSTEM_RESUME_PARSER,
-  SYSTEM_SUPPORTING_DOC_PARSER,
   generateApplicationPrompt,
   generateChatSystemInstruction,
   analyzeProfileUpdatePrompt,
+  SYSTEM_UNIVERSAL_PARSER,
 } from '../lib/prompts';
 import { JobDescription, UserProfile, Message, TailoredCV } from '@/types/db';
 import { ParsedResumeData, QAResponse, WritingTone } from '@/types/ai';
+import { jsonrepair } from 'jsonrepair';
+import { retrieveFilesAndGenerateContext } from '@/utils/file';
 
 // Initialize Client
 // NOTE: API Key must be set in the execution environment or retrieved securely.
@@ -65,38 +66,25 @@ const handleGeminiError = (error: any, context: string): never => {
   throw new Error(friendlyMsg);
 };
 
-// Helper function to safely extract and parse JSON text block,
-// returning the parsed object (T) on success or null on failure.
+/** robustly extracts and repairs JSON from LLM output */
 const extractAndParseJson = <T>(text: string, context: string): T | null => {
-  let jsonText = text; // 1. Safe JSON block extraction (handles common markdown formats)
-  if (jsonText.startsWith('```json')) {
-    jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-  } else if (jsonText.startsWith('```')) {
-    jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-  } // 2. FIX: Sanitize the raw JSON text to handle unescaped control characters and newlines // that cause "Unterminated string" errors. This is crucial for LLM-generated JSON strings.
-
-  const sanitizedJsonText = jsonText
-    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
-    .replace(/\n/g, '\\n'); // Escape unescaped newlines inside strings
+  let cleanText = text.trim();
+  // Remove markdown code blocks if present
+  const match = cleanText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (match) cleanText = match[1];
 
   try {
-    // Attempt to parse the cleaned text
-    const parsedObject = JSON.parse(sanitizedJsonText); // Optional check
-    if (typeof parsedObject !== 'object' || parsedObject === null) {
-      console.error(
-        `${context} JSON Error: Parsed result is not an object.`,
-        parsedObject
-      );
-      console.log('Raw Response Text (Before Sanitization):', text);
+    return JSON.parse(cleanText) as T;
+  } catch (e) {
+    console.log(e);
+    try {
+      // Attempt to repair broken JSON (unterminated strings, missing brackets)
+      console.warn(`${context}: JSON parse failed, attempting repair...`);
+      return JSON.parse(jsonrepair(cleanText)) as T;
+    } catch (repairError) {
+      console.error(`${context}: Critical JSON repair failed.`, repairError);
       return null;
     }
-    return parsedObject as T;
-  } catch (jsonError) {
-    // 3. Log error and return null (never throws)
-    console.error(`${context} JSON Parse Failure:`, jsonError);
-    console.log('Raw Response Text (Before Sanitization):', text);
-    console.log('Sanitized JSON Text (Attempted to Parse):', sanitizedJsonText);
-    return null;
   }
 };
 
@@ -104,35 +92,51 @@ const extractAndParseJson = <T>(text: string, context: string): T | null => {
  * Parses a resume file (PDF/Text) into structured data using Gemini 2.5 Flash.
  * Returns the ParsedResumeData structure.
  */
-export const parseResumeWithGemini = async (
-  base64Data: string,
-  mimeType: string
+export const parseCareerDocumentWithGemini = async (
+  files: string[],
+  currentProfile?: Partial<UserProfile>
 ): Promise<ParsedResumeData | undefined> => {
   try {
-    console.log('Starting Resume Parsing...');
+    console.log('Starting Universal Document Parsing...');
+
+    // Prepare the context string with existing data
+    const contextPrompt = currentProfile
+      ? `\n\nCURRENT EXISTING PROFILE DATA:\n${JSON.stringify(currentProfile)}`
+      : '\n\nCURRENT EXISTING PROFILE DATA: {} (New Profile)';
+
+    const text = SYSTEM_UNIVERSAL_PARSER + contextPrompt;
+
+    const part = await retrieveFilesAndGenerateContext(files, text);
+
+    console.log('Generated context length:', part);
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: {
-        parts: [
-          { inlineData: { mimeType: mimeType, data: base64Data } },
-          { text: SYSTEM_RESUME_PARSER },
-        ],
+        parts: part,
       },
       config: {
         responseMimeType: 'application/json',
-        temperature: 0,
+        temperature: 0.1, // Low temperature for consistent data extraction
         maxOutputTokens: 8192,
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            full_name: { type: Type.STRING }, // Use snake_case for consistency
+            full_name: { type: Type.STRING },
+            email: { type: Type.STRING },
+            phone: { type: Type.STRING },
+            location: { type: Type.STRING },
+            linkedin: { type: Type.STRING },
+            portfolio: { type: Type.STRING },
             summary: { type: Type.STRING },
             skills: {
-              type: Type.OBJECT,
-              properties: {
-                technical: { type: Type.ARRAY, items: { type: Type.STRING } },
-                soft: { type: Type.ARRAY, items: { type: Type.STRING } },
-                keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: { type: Type.STRING },
+                  category: { type: Type.STRING },
+                },
               },
             },
             experience: {
@@ -170,92 +174,27 @@ export const parseResumeWithGemini = async (
                 },
               },
             },
+            additional_info: { type: Type.STRING },
           },
         },
       },
     });
 
     if (!response.text) {
-      console.warn('Parse Resume: Received empty text response from Gemini.');
       throw new Error('No data returned from AI model.');
-    } // Handle null return from the updated safe parser
+    }
 
     return (
-      extractAndParseJson<ParsedResumeData>(response.text, 'Resume Parsing') ||
-      undefined
-    );
-  } catch (error) {
-    handleGeminiError(error, 'Resume Parsing');
-  }
-};
-
-/**
- * Parses a supporting document.
- * Returns a partial of the ParsedResumeData structure.
- */
-export const parseSupportingDocWithGemini = async (
-  base64Data: string,
-  mimeType: string
-): Promise<Partial<ParsedResumeData> | undefined> => {
-  try {
-    console.log('Starting Supporting Document Parsing...');
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: {
-        parts: [
-          { inlineData: { mimeType: mimeType, data: base64Data } },
-          { text: SYSTEM_SUPPORTING_DOC_PARSER },
-        ],
-      },
-      config: {
-        responseMimeType: 'application/json',
-        temperature: 0,
-        maxOutputTokens: 4096,
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            skills: {
-              type: Type.OBJECT,
-              properties: {
-                technical: { type: Type.ARRAY, items: { type: Type.STRING } },
-                soft: { type: Type.ARRAY, items: { type: Type.STRING } },
-                keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
-              },
-            },
-            education: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  school: { type: Type.STRING },
-                  degree: { type: Type.STRING },
-                  year: { type: Type.STRING },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!response.text) {
-      console.warn(
-        'Parse Supporting Doc: Received empty text response from Gemini.'
-      );
-      throw new Error('No data returned from AI model.');
-    } // Handle null return from the updated safe parser
-
-    return (
-      extractAndParseJson<Partial<ParsedResumeData>>(
+      extractAndParseJson<ParsedResumeData>(
         response.text,
-        'Supporting Doc Parsing'
+        'Universal Parsing'
       ) || undefined
     );
   } catch (error) {
-    handleGeminiError(error, 'Supporting Doc Parsing');
+    console.error('Gemini Parsing Error:', error);
+    handleGeminiError(error, 'Document Analysis');
   }
 };
-
 /**
  * Interface for the full package output from Gemini, mirroring the fields we need to save.
  */
@@ -289,6 +228,16 @@ export const generateApplicationPackage = async (
               type: Type.OBJECT,
               properties: {
                 summary: { type: Type.STRING },
+                skills: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      name: { type: Type.STRING },
+                      category: { type: Type.STRING },
+                    },
+                  },
+                },
                 experience: {
                   type: Type.ARRAY,
                   items: {
@@ -321,19 +270,6 @@ export const generateApplicationPackage = async (
                       title: { type: Type.STRING },
                       date: { type: Type.STRING },
                       description: { type: Type.STRING },
-                    },
-                  },
-                },
-                skills: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      name: { type: Type.STRING },
-                      category: {
-                        type: Type.STRING,
-                        enum: ['technical', 'soft', 'keywords'],
-                      },
                     },
                   },
                 },

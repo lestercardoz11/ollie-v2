@@ -75,7 +75,7 @@ export default function ApplicationPackageView({
       setGenerationStep(1);
 
       const chatTitle = `Chat for ${job.title}`;
-      const newChatId = await db.startNewChat(profile.user_id, chatTitle);
+      const newChatId = await db.startNewChat(chatTitle);
       setGenerationStep(2);
 
       await db.saveApplicationPackage(job.id, profile.id, cvId, newChatId, {
@@ -166,15 +166,46 @@ export default function ApplicationPackageView({
           <>
             {/* Content Area */}
             <TabsContent value='cv'>
-              {/* 🐛 FIX 6: Pass the joined application object */}
               <TailoredCV
                 userProfile={profile}
-                application={application}
+                tailorCV={application.tailored_cv}
                 job={job}
+                onSave={async (updatedCV) => {
+                  // Update the application state with the new CV data
+                  const updatedApplication = {
+                    ...application,
+                    tailored_cv_data: updatedCV,
+                  };
+                  setApplication(updatedApplication);
+                  await db.saveTailoredCV(
+                    application.tailored_cv.id,
+                    updatedCV
+                  );
+                  toast.success('Tailored CV updated successfully!');
+                }}
               />
             </TabsContent>
             <TabsContent value='cover'>
-              <CoverLetter application={application} job={job} />
+              <CoverLetter
+                application={application}
+                job={job}
+                onSave={async (updatedMarkdown) => {
+                  // Update the application state with the new cover letter markdown
+                  const updatedApplication = {
+                    ...application,
+                    cover_letter_markdown: updatedMarkdown,
+                  };
+                  setApplication(updatedApplication as ApplicationWithDetails);
+                  await db.saveApplicationPackage(
+                    application.job_id,
+                    application.user_id,
+                    application.tailored_cv_id || '',
+                    application.chat_id,
+                    { cover_letter_markdown: updatedMarkdown }
+                  );
+                  toast.success('Cover Letter updated successfully!');
+                }}
+              />
             </TabsContent>
             <TabsContent value='chat'>
               <Chat

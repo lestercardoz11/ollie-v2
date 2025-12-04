@@ -11,6 +11,7 @@ import {
   Chat,
   Message,
   Skill,
+  GeneratedApplication,
 } from '@/types/db';
 
 import { createClient } from '@/utils/supabase/client';
@@ -34,6 +35,8 @@ export const db = {
     } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
+    const skills = await db.saveSkills(profile.skills || []);
+
     // Payload maps directly to snake_case DB fields
     const payload = {
       user_id: user.id,
@@ -42,15 +45,13 @@ export const db = {
       phone: profile.phone,
       location: profile.location,
       summary: profile.summary,
-      resume_url: profile.resume_url,
-      profile_picture_url: profile.profile_picture_url,
       additional_info: profile.additional_info,
       linkedin: profile.linkedin,
       portfolio: profile.portfolio,
-      education: profile.education,
-      experience: profile.experience,
-      skills: profile.skills,
-      achievements: profile.achievements,
+      experience: profile.experience || [],
+      education: profile.education || [],
+      achievements: profile.achievements || [],
+      skills: skills,
     };
 
     const { data, error } = await supabase
@@ -83,12 +84,15 @@ export const db = {
     }
     if (!data) return null;
 
+    data.skills = (await db.getSkillsByIds(data.skills)) || [];
+
     // Direct mapping to UserProfile interface (fields are already snake_case)
     return data as UserProfile;
   },
 
+  // --- SKILLS Master List Operations ---
   getSkills: async (): Promise<Skill[]> => {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from('skills')
       .select('id, name, category') // Explicitly select columns for clarity
@@ -100,10 +104,32 @@ export const db = {
     return data as Skill[];
   },
 
+  saveSkills: async (skills: Skill[]): Promise<string[]> => {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const { data, error } = await supabase
+      .from('skills')
+      .upsert(skills, { onConflict: 'name' })
+      .select('*');
+
+    if (error) {
+      console.error('Error saving skills:', error);
+      throw error;
+    }
+
+    if (!data) return [];
+
+    return (data as Skill[]).map((s) => s.id);
+  },
+
   getSkillsByIds: async (skillIds: string[]): Promise<Skill[]> => {
     if (skillIds.length === 0) return [];
 
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from('skills')
       .select('id, name, category')
@@ -137,15 +163,10 @@ export const db = {
       .toString(36)
       .substring(7)}.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage
+    const { data: fileData, error: uploadError } = await supabase.storage
       .from(bucketName)
       .upload(fileName, file, { upsert: false });
     if (uploadError) throw uploadError;
-
-    // 2. Get Public URL
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from(bucketName).getPublicUrl(fileName);
 
     // 3. Save Metadata to Table
     const { data, error } = await supabase
@@ -153,7 +174,7 @@ export const db = {
       .insert({
         user_id: user.id,
         name: file.name,
-        file_url: publicUrl,
+        file_url: fileData?.path,
         file_type: file.type,
       })
       .select()
@@ -199,11 +220,7 @@ export const db = {
 
     // 2. Delete from Storage
     if (doc && doc.file_url) {
-      const urlParts = doc.file_url.split(`/${bucketName}/`);
-      if (urlParts.length > 1) {
-        const storagePath = decodeURIComponent(urlParts[1]);
-        await supabase.storage.from(bucketName).remove([storagePath]);
-      }
+      await supabase.storage.from(bucketName).remove([doc.file_url]);
     }
 
     // 3. Delete Record
@@ -332,9 +349,14 @@ export const db = {
   ): Promise<string> => {
     const supabase = createClient();
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
     const payload = {
       job_id: jobId,
-      profile_id: profileId,
+      user_id: user.id,
       tailored_cv_id: cvId,
       cover_letter_markdown: generationOutput.cover_letter_markdown,
       chat_id: chatId,
@@ -342,13 +364,31 @@ export const db = {
 
     const { data, error } = await supabase
       .from('generated_applications')
-      .upsert(payload, { onConflict: 'job_id, profile_id' })
+      .upsert(payload, { onConflict: 'job_id, user_id' })
       .select('id')
       .single();
 
     if (error) throw error;
     window.dispatchEvent(new Event('db-update'));
     return data.id;
+  },
+
+  getApplications: async (): Promise<GeneratedApplication[]> => {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('generated_applications')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) return [];
+
+    return data as GeneratedApplication[];
   },
 
   getApplicationWithDetails: async (
@@ -365,11 +405,11 @@ export const db = {
       .from('generated_applications')
       .select(
         `
-          *,
-          job:job_id (*),
-          tailored_cv:tailored_cv_id (*),
-          chat:chat_id (*)
-        `
+        *,
+        job:job_id (*),
+        tailored_cv:tailored_cv_id (*),
+        chat:chat_id (*)
+      `
       )
       .eq('job_id', jobId)
       .eq('user_id', user.id)

@@ -7,13 +7,5 @@ export default async function ProfilePage() {
     db.getDocuments(),
   ]);
 
-  const skills = await db.getSkillsByIds(savedProfile?.skills || []);
-
-  return (
-    <ProfileView
-      userProfile={savedProfile}
-      documents={savedDocs}
-      skills={skills}
-    />
-  );
+  return <ProfileView userProfile={savedProfile} documents={savedDocs} />;
 }

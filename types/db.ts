@@ -1,11 +1,6 @@
 // --- ENUMS & UTILITY TYPES ---
 
 /**
- * Maps directly to the PostgreSQL ENUM `skill_category_enum`.
- */
-export type SkillCategory = 'technical' | 'soft' | 'keywords';
-
-/**
  * Maps directly to the PostgreSQL ENUM `message_role_enum`.
  */
 export type MessageRole = 'user' | 'assistant';
@@ -18,7 +13,7 @@ export type MessageRole = 'user' | 'assistant';
 export interface Skill {
   id: string; // UUID
   name: string;
-  category: SkillCategory;
+  category: string;
 }
 
 /**
@@ -68,7 +63,6 @@ export interface UserProfile {
   phone: string | null;
   location: string | null;
   summary: string | null;
-  resume_url: string | null; // Mapped from DB 'resume_url'
   profile_picture_url: string | null; // Mapped from DB 'profile_picture_url'
   additional_info: string | null;
   linkedin: string | null;
@@ -76,7 +70,7 @@ export interface UserProfile {
   experience: WorkExperience[] | [];
   education: Education[] | [];
   achievements: Achievement[] | [];
-  skills: string[] | [];
+  skills: Skill[] | [];
   created_at: string; // ISO Date String
 }
 
